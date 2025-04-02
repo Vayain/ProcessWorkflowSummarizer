@@ -1,13 +1,6 @@
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
 import { Button } from "@/components/ui/button";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
   Popover,
   PopoverContent,
   PopoverTrigger 
@@ -15,6 +8,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { initializeCapture, cleanupCapture, captureFrame, isCaptureActive, compressImage } from "@/lib/capture-engine";
 
 export default function CaptureControls() {
   const { 
@@ -81,7 +75,18 @@ export default function CaptureControls() {
           <Button
             variant={isCapturing ? "destructive" : "secondary"}
             className="inline-flex items-center"
-            onClick={stopCapture}
+            onClick={() => {
+              // Stop capture through the context
+              stopCapture();
+              
+              // Also clean up any resources from our capture engine
+              cleanupCapture();
+              
+              toast({
+                title: "Screen Capture Stopped",
+                description: "All resources have been released and capture has been stopped.",
+              });
+            }}
             disabled={!isCapturing}
           >
             <span className="material-icons mr-1">stop</span>
@@ -104,42 +109,71 @@ export default function CaptureControls() {
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Capture Area</label>
-                  <Select
-                    value={captureArea}
-                    onValueChange={(value) => {
-                      // When selecting Full Screen mode, show an info popup
-                      if (value === "Full Screen" && captureArea !== "Full Screen") {
-                        // Close settings popover first
-                        setShowSettings(false);
-                        
-                        // Update capture area
-                        setCaptureArea(value);
-                        
-                        // If currently capturing, stop it first
-                        if (isCapturing) {
-                          stopCapture();
+                  <Button
+                    variant="outline"
+                    className="w-full flex justify-between items-center"
+                    onClick={async () => {
+                      // Close settings popover first
+                      setShowSettings(false);
+                      
+                      // If currently capturing, stop it first
+                      if (isCapturing) {
+                        stopCapture();
+                      }
+                      
+                      // Clean up any existing capture
+                      cleanupCapture();
+                      
+                      // Update capture area
+                      setCaptureArea("Full Screen");
+                      
+                      // Show info popup
+                      toast({
+                        title: "Select Input Source",
+                        description: "Please select the screen, window, or tab you want to capture.",
+                        duration: 5000,
+                      });
+                      
+                      // Initialize the capture with our new engine and handle preview frames
+                      const initialized = await initializeCapture((previewImage) => {
+                        // This callback will be called whenever a new preview frame is available
+                        // We'll use the screenshot context to update the preview state
+                        if (previewImage) {
+                          // Send the preview image to the context
+                          if (typeof window !== 'undefined') {
+                            // Use a custom event to communicate with the context
+                            const event = new CustomEvent('screenshot-preview-update', {
+                              detail: { previewImage }
+                            });
+                            window.dispatchEvent(event);
+                          }
                         }
+                      });
+                      
+                      if (initialized) {
+                        toast({
+                          title: "Preview Ready",
+                          description: "Screen preview is now active. Click 'Start Capture' when ready to begin.",
+                          duration: 5000,
+                        });
                       } else {
-                        // For other capture types, just update the setting
-                        setCaptureArea(value);
+                        toast({
+                          title: "Screen Capture Failed",
+                          description: "Unable to access screen capture. Please check your browser permissions and try again.",
+                          variant: "destructive",
+                        });
                       }
                     }}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select capture area" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full Browser Tab">Full Browser Tab</SelectItem>
-                      <SelectItem value="Current Window">Current Window</SelectItem>
-                      <SelectItem value="Full Screen">Full Screen</SelectItem>
-                      <SelectItem value="Selected Element">Selected Element</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {captureArea === "Full Screen" && (
-                    <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                      <p>Screen capture will request browser permission to access your screen. You'll be able to select which tab, window, or your entire screen to capture.</p>
-                    </div>
-                  )}
+                    <span className="flex items-center">
+                      <span className="material-icons mr-2">desktop_windows</span>
+                      Choose Input
+                    </span>
+                    <span className="material-icons">chevron_right</span>
+                  </Button>
+                  <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                    <p>Screen capture will request browser permission to access your screen. You'll be able to select which tab, window, or your entire screen to capture.</p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

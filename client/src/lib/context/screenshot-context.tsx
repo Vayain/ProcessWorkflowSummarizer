@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { captureScreenshot, compressImageIfNeeded, initScreenCapture, cleanupMediaStream, captureFrameFromMediaStream } from '@/lib/screenshot';
-import { analyzeScreenshot } from '@/lib/openai';
-import { getProcessingStatus } from '@/lib/crewai';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { analyzeScreenshot } from '@/lib/openai';
+import { getProcessingStatus } from '@/lib/crewai';
+import { captureFrame, cleanupCapture, compressImage, isCaptureActive } from '@/lib/capture-engine';
 
 interface Screenshot {
   id: number;
@@ -49,7 +49,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureInterval, setCaptureInterval] = useState(2);
-  const [captureArea, setCaptureArea] = useState('Full Browser Tab');
+  const [captureArea, setCapArea] = useState('Full Screen');
   const [formatType, setFormatType] = useState('PNG');
   const [isRealTimeAnalysis, setIsRealTimeAnalysis] = useState(true);
   const [captureStatus, setCaptureStatus] = useState('Ready');
@@ -61,8 +61,9 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [latestScreenshot, setLatestScreenshot] = useState<Screenshot | null>(null);
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [previewImageData, setPreviewImageData] = useState<string | null>(null);
-  
-  // Reference to track any active display media streams
+  const [previewIntervalId, setPreviewIntervalId] = useState<number | null>(null);
+
+  // Reference to track any legacy active display media streams
   const activeScreenStreams = useRef<MediaStream[]>([]);
   
   // Analysis progress tracking
@@ -104,8 +105,8 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
         window.clearInterval(captureIntervalId);
       }
       
-      // Clean up any active screen streams using the new global cleanup function
-      cleanupMediaStream();
+      // Clean up using our capture engine
+      cleanupCapture();
       
       // Also clean up any streams tracked in our ref for backward compatibility
       if (activeScreenStreams.current.length > 0) {
@@ -146,197 +147,157 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     setScreenshots(sortedScreenshots);
   }, [sortOrder]);
   
-  // Effect to handle capture area changes and initialize preview
+  // Handler for preview frame updates from the capture engine
   useEffect(() => {
-    // When Full Screen mode is selected, initialize the preview automatically
-    if (captureArea === "Full Screen") {
-      setCaptureStatus('Initializing preview...');
-      
-      // Initialize screen capture for preview
-      initScreenCapture()
-        .then(stream => {
-          if (stream) {
-            setIsPreviewActive(true);
-            setCaptureStatus('Preview active');
-            
-            // Create a preview frame every second
-            const previewInterval = setInterval(async () => {
-              try {
-                if (!isCapturing) {
-                  const frame = await captureFrameFromMediaStream(0.5);
-                  if (frame) {
-                    setPreviewImageData(frame);
-                  }
-                }
-              } catch (error) {
-                console.error('Error updating preview frame:', error);
-              }
-            }, 1000);
-            
-            // Clean up the preview interval when changing capture area
-            return () => {
-              clearInterval(previewInterval);
-              if (!isCapturing) {
-                cleanupMediaStream();
-              }
-            };
-          } else {
-            setIsPreviewActive(false);
-            setCaptureStatus('Preview failed');
-          }
-        })
-        .catch(error => {
-          console.error('Error initializing preview:', error);
-          setIsPreviewActive(false);
-          setCaptureStatus('Preview failed');
-        });
-    } else {
-      setIsPreviewActive(false);
-      setPreviewImageData(null);
-    }
-  }, [captureArea, isCapturing]);
-
-  const captureAndSaveScreenshot = useCallback(async () => {
-    if (!currentSessionId) return;
-    
-    try {
-      // For full screen captures, we're now releasing the stream immediately after each capture
-      // This avoids the issue with browser permission dialog staying open
-      const imageData = await captureScreenshot(captureArea);
-      
-      // Compress if needed to ensure it's not too large for API
-      const compressedImageData = await compressImageIfNeeded(imageData);
-      
-      // Save screenshot to API
-      const response = await apiRequest('POST', '/api/screenshots', {
-        sessionId: currentSessionId,
-        imageData: compressedImageData,
-        aiAnalysisStatus: isRealTimeAnalysis ? 'pending' : 'completed'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save screenshot');
-      }
-      
-      const newScreenshot = await response.json();
-      
-      // Add to state
-      setScreenshots(prev => {
-        const updated = [newScreenshot, ...prev];
-        return sortOrder === 'newest' 
-          ? updated 
-          : updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      });
-      
-      setLatestScreenshot(newScreenshot);
-      setScreenshotCount(prev => prev + 1);
-      
-      // If real-time analysis is enabled, send for analysis
-      if (isRealTimeAnalysis) {
-        try {
-          const description = await analyzeScreenshot(newScreenshot.id, compressedImageData);
-          
-          // Update screenshot with description
-          const updatedScreenshot = {
-            ...newScreenshot,
-            description,
-            aiAnalysisStatus: 'completed'
-          };
-          
-          // Update in state
-          setScreenshots(prev => 
-            prev.map(s => s.id === updatedScreenshot.id ? updatedScreenshot : s)
-          );
-          
-          setLatestScreenshot(updatedScreenshot);
-          setCurrentDescription(description);
-          
-          // Also update on server
-          await apiRequest('PATCH', `/api/screenshots/${newScreenshot.id}`, {
-            description,
-            aiAnalysisStatus: 'completed'
-          });
-        } catch (error) {
-          console.error('Error analyzing screenshot:', error);
-          
-          // Mark as failed
-          setScreenshots(prev => 
-            prev.map(s => s.id === newScreenshot.id 
-              ? { ...s, aiAnalysisStatus: 'failed' } 
-              : s
-            )
-          );
-          
-          if (newScreenshot.id === latestScreenshot?.id) {
-            setLatestScreenshot(prev => prev ? { ...prev, aiAnalysisStatus: 'failed' } : null);
-          }
+    if (typeof window !== 'undefined') {
+      // Listen for custom events from our capture engine
+      const handlePreviewFrame = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail && customEvent.detail.previewImage) {
+          setPreviewImageData(customEvent.detail.previewImage);
+          setIsPreviewActive(true);
         }
-      }
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      toast({
-        title: 'Screenshot Capture Failed',
-        description: 'There was an error capturing or saving the screenshot.',
-        variant: 'destructive',
-      });
+      };
+      
+      window.addEventListener('screenshot-preview-update', handlePreviewFrame);
+      
+      return () => {
+        window.removeEventListener('screenshot-preview-update', handlePreviewFrame);
+      };
     }
-  }, [currentSessionId, captureArea, isRealTimeAnalysis, sortOrder, latestScreenshot, toast]);
+  }, []);
 
+  // Function to update the capture area
+  const setCaptureArea = useCallback((area: string) => {
+    setCapArea(area);
+  }, []);
+
+  // Start capture function using our new engine
   const startCapture = useCallback(async () => {
-    setIsCapturing(true);
-    setCaptureStatus('Preparing...');
-    
-    // For Full Screen mode, initialize the stream first to handle permissions
-    try {
-      if (captureArea === "Full Screen") {
-        // Show a toast while waiting for the user to choose what to share
-        toast({
-          title: "Select what to share",
-          description: "Please select the screen, window, or tab you want to capture",
-        });
+    // Only start if preview is active
+    if (isPreviewActive && previewImageData) {
+      setIsCapturing(true);
+      setCaptureStatus('Capturing');
+      
+      // Create a function that captures and saves a frame
+      const saveCurrentFrame = async () => {
+        if (!currentSessionId) return;
         
-        // Initialize screen capture
-        const stream = await initScreenCapture();
-        
-        if (!stream) {
-          toast({
-            title: "Screen Capture Failed",
-            description: "Unable to access screen capture. Please try again.",
-            variant: "destructive",
+        try {
+          // Get a frame from our capture engine
+          const frameData = await captureFrame(0.8);
+          if (!frameData) {
+            throw new Error('Failed to capture frame');
+          }
+          
+          // Compress the image if needed
+          const compressedImageData = await compressImage(frameData);
+          
+          // Save screenshot to API
+          const response = await apiRequest('POST', '/api/screenshots', {
+            sessionId: currentSessionId,
+            imageData: compressedImageData,
+            aiAnalysisStatus: isRealTimeAnalysis ? 'pending' : 'completed'
           });
-          setIsCapturing(false);
-          setCaptureStatus('Failed');
-          return;
+          
+          if (!response.ok) {
+            throw new Error('Failed to save screenshot');
+          }
+          
+          const newScreenshot = await response.json();
+          
+          // Add to state
+          setScreenshots(prev => {
+            const updated = [newScreenshot, ...prev];
+            return sortOrder === 'newest' 
+              ? updated 
+              : updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          });
+          
+          setLatestScreenshot(newScreenshot);
+          setScreenshotCount(prev => prev + 1);
+          
+          // If real-time analysis is enabled, send for analysis
+          if (isRealTimeAnalysis) {
+            try {
+              const description = await analyzeScreenshot(newScreenshot.id, compressedImageData);
+              
+              // Update screenshot with description
+              const updatedScreenshot = {
+                ...newScreenshot,
+                description,
+                aiAnalysisStatus: 'completed'
+              };
+              
+              // Update in state
+              setScreenshots(prev => 
+                prev.map(s => s.id === updatedScreenshot.id ? updatedScreenshot : s)
+              );
+              
+              setLatestScreenshot(updatedScreenshot);
+              setCurrentDescription(description);
+              
+              // Also update on server
+              await apiRequest('PATCH', `/api/screenshots/${newScreenshot.id}`, {
+                description,
+                aiAnalysisStatus: 'completed'
+              });
+            } catch (error) {
+              console.error('Error analyzing screenshot:', error);
+              
+              // Mark as failed
+              setScreenshots(prev => 
+                prev.map(s => s.id === newScreenshot.id 
+                  ? { ...s, aiAnalysisStatus: 'failed' } 
+                  : s
+                )
+              );
+              
+              if (newScreenshot.id === latestScreenshot?.id) {
+                setLatestScreenshot(prev => prev ? { ...prev, aiAnalysisStatus: 'failed' } : null);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error capturing and saving frame:', error);
+          toast({
+            title: 'Screenshot Capture Failed',
+            description: 'Failed to capture or save the screenshot.',
+            variant: 'destructive',
+          });
         }
-        
-        // Success - screen is ready to capture
-        toast({
-          title: "Ready to Capture",
-          description: "Screen capture initialized successfully!",
-        });
-      }
-    } catch (error) {
-      console.error("Error initializing capture:", error);
+      };
+      
+      // Capture immediately
+      saveCurrentFrame();
+      
+      // Set up interval for regular captures
+      const intervalId = window.setInterval(saveCurrentFrame, captureInterval * 1000);
+      setCaptureIntervalId(intervalId);
+      
+      toast({
+        title: "Screen Capture Started",
+        description: `Taking screenshots every ${captureInterval} seconds.`,
+      });
+    } else {
       toast({
         title: "Screen Capture Failed",
-        description: error instanceof Error ? error.message : "Unknown error initializing capture",
+        description: "No preview active. Please select a capture source first.",
         variant: "destructive",
       });
-      setIsCapturing(false);
-      setCaptureStatus('Failed');
-      return;
     }
-    
-    setCaptureStatus('Capturing');
-    
-    // Capture immediately
-    captureAndSaveScreenshot();
-    
-    // Then set interval
-    const intervalId = window.setInterval(captureAndSaveScreenshot, captureInterval * 1000);
-    setCaptureIntervalId(intervalId);
-  }, [captureInterval, captureAndSaveScreenshot, captureArea, toast]);
+  }, [
+    captureInterval,
+    isPreviewActive,
+    previewImageData,
+    currentSessionId,
+    isRealTimeAnalysis,
+    sortOrder,
+    latestScreenshot,
+    toast
+  ]);
 
+  // Stop capture function
   const stopCapture = useCallback(() => {
     // Stop the capture interval
     if (captureIntervalId) {
@@ -344,44 +305,10 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       setCaptureIntervalId(null);
     }
     
-    // Clean up any screen capture resources using the global cleanup function
-    cleanupMediaStream();
+    // Clean up the capture resources
+    cleanupCapture();
     
-    // Also clean up any streams in our ref for backward compatibility
-    if (activeScreenStreams.current.length > 0) {
-      console.log(`Cleaning up ${activeScreenStreams.current.length} active media streams from ref`);
-      
-      // Stop all active streams
-      activeScreenStreams.current.forEach(stream => {
-        stream.getTracks().forEach(track => {
-          console.log(`Stopping track: ${track.kind} (${track.id})`);
-          track.stop();
-        });
-      });
-      
-      // Clear the array
-      activeScreenStreams.current = [];
-    }
-    
-    setIsCapturing(false);
-    setCaptureStatus('Paused');
-    
-    toast({
-      title: "Screen Capture Stopped",
-      description: "All capture resources have been released.",
-    });
-  }, [captureIntervalId, toast]);
-
-  const restartCapture = useCallback(() => {
-    // Clear old interval
-    if (captureIntervalId) {
-      window.clearInterval(captureIntervalId);
-    }
-    
-    // Clean up any screen capture resources using the global cleanup function
-    cleanupMediaStream();
-    
-    // Also clean up any streams tracked in our ref for backward compatibility
+    // Clean up any legacy streams
     if (activeScreenStreams.current.length > 0) {
       activeScreenStreams.current.forEach(stream => {
         stream.getTracks().forEach(track => track.stop());
@@ -389,36 +316,18 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       activeScreenStreams.current = [];
     }
     
-    // Reset count
-    setScreenshotCount(0);
-    setScreenshots([]);
-    setLatestScreenshot(null);
-    setCurrentDescription('');
-    
-    // Start new capture - for Full Screen mode, we'll initialize the stream first
-    if (captureArea === "Full Screen") {
-      // Initialize the stream but don't wait for it, it will be done in captureScreenshot
-      initScreenCapture().catch(error => {
-        console.error("Failed to initialize screen capture during restart:", error);
-      });
-    }
-    
-    setCaptureStatus('Restarted');
-    setIsCapturing(true);
-    
-    // Capture immediately
-    captureAndSaveScreenshot();
-    
-    // Then set interval
-    const intervalId = window.setInterval(captureAndSaveScreenshot, captureInterval * 1000);
-    setCaptureIntervalId(intervalId);
+    setIsCapturing(false);
+    setCaptureStatus('Stopped');
+    setIsPreviewActive(false);
+    setPreviewImageData(null);
     
     toast({
-      title: "Screen Capture Restarted",
-      description: "All previous captures have been cleared.",
+      title: "Screen Capture Stopped",
+      description: "All capture resources have been released.",
     });
-  }, [captureInterval, captureIntervalId, captureAndSaveScreenshot, captureArea, toast]);
+  }, [captureIntervalId, toast]);
 
+  // Delete a screenshot
   const deleteScreenshot = useCallback(async (id: number) => {
     try {
       await apiRequest('DELETE', `/api/screenshots/${id}`, undefined);
@@ -449,6 +358,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [screenshots, latestScreenshot, toast]);
 
+  // Update screenshot description
   const updateScreenshotDescription = useCallback(async (id: number, description: string) => {
     try {
       await apiRequest('PATCH', `/api/screenshots/${id}`, { description });
