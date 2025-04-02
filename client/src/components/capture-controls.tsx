@@ -33,6 +33,26 @@ export default function CaptureControls() {
 
   return (
     <div className="bg-white p-4 border-b border-neutral-200">
+      {/* Full screen capture warning banner - only shown during active full screen capture */}
+      {isCapturing && captureArea === "Full Screen" && (
+        <div className="w-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 fixed top-0 left-0 right-0 z-50">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-bold">Screen Capture Active</p>
+              <p>Your screen is being captured. Click the "Stop Capture" button to end the session.</p>
+            </div>
+            <Button
+              variant="destructive"
+              className="inline-flex items-center"
+              onClick={stopCapture}
+            >
+              <span className="material-icons mr-1">stop</span>
+              Stop Capture
+            </Button>
+          </div>
+        </div>
+      )}
+      
       <div className="flex flex-wrap items-center justify-between mb-4">
         <div className="flex items-center space-x-2 mb-2 md:mb-0">
           <Button
@@ -46,7 +66,7 @@ export default function CaptureControls() {
           </Button>
           
           <Button
-            variant="secondary"
+            variant={isCapturing ? "destructive" : "secondary"}
             className="inline-flex items-center"
             onClick={stopCapture}
             disabled={!isCapturing}

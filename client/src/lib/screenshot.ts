@@ -12,7 +12,10 @@ interface ExtendedDisplayMediaStreamConstraints {
 }
 
 // Screenshot capturing functionality
-export async function captureScreenshot(captureArea: string = "Full Browser Tab"): Promise<string> {
+export async function captureScreenshot(
+  captureArea: string = "Full Browser Tab", 
+  activeScreenStreamRef?: React.MutableRefObject<MediaStream[]>
+): Promise<string> {
   try {
     // Determine what to capture based on the capture area setting
     let element: HTMLElement | null = null;
@@ -58,7 +61,13 @@ export async function captureScreenshot(captureArea: string = "Full Browser Tab"
                 height: { ideal: 2160 }
               }
             };
-            const stream = await navigator.mediaDevices.getDisplayMedia(constraints as DisplayMediaStreamConstraints);
+            const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+            
+            // Store the stream reference for cleanup
+            if (activeScreenStreamRef) {
+              activeScreenStreamRef.current.push(stream);
+              console.log('Added screen capture stream to active streams, total:', activeScreenStreamRef.current.length);
+            }
             
             // Create a video element to capture the screen
             const video = document.createElement('video');
@@ -79,8 +88,12 @@ export async function captureScreenshot(captureArea: string = "Full Browser Tab"
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Stop all tracks
-            stream.getTracks().forEach(track => track.stop());
+            // In single capture mode, stop all tracks immediately
+            // In continuous capture mode with activeScreenStreamRef, we'll leave the stream running
+            // and clean it up when stopCapture is called
+            if (!activeScreenStreamRef) {
+              stream.getTracks().forEach(track => track.stop());
+            }
             
             // Return the canvas as a data URL
             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);

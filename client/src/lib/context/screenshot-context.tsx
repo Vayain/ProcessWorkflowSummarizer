@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { captureScreenshot, compressImageIfNeeded } from '@/lib/screenshot';
 import { analyzeScreenshot } from '@/lib/openai';
 import { getProcessingStatus } from '@/lib/crewai';
@@ -59,6 +59,9 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [currentDescription, setCurrentDescription] = useState('');
   const [latestScreenshot, setLatestScreenshot] = useState<Screenshot | null>(null);
   
+  // Reference to track any active display media streams
+  const activeScreenStreams = useRef<MediaStream[]>([]);
+  
   // Analysis progress tracking
   const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
   const [processingProgress, setProcessingProgress] = useState({ status: 'Waiting...', percent: 0 });
@@ -91,10 +94,20 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     
     fetchScreenshots();
     
-    // Cleanup interval on unmount
+    // Cleanup on unmount
     return () => {
+      // Stop capture interval
       if (captureIntervalId) {
         window.clearInterval(captureIntervalId);
+      }
+      
+      // Clean up any active screen streams
+      if (activeScreenStreams.current.length > 0) {
+        console.log(`Unmounting component, cleaning up ${activeScreenStreams.current.length} active streams.`);
+        activeScreenStreams.current.forEach(stream => {
+          stream.getTracks().forEach(track => track.stop());
+        });
+        activeScreenStreams.current = [];
       }
     };
   }, []);
@@ -131,8 +144,8 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!currentSessionId) return;
     
     try {
-      // Capture screenshot
-      const imageData = await captureScreenshot(captureArea);
+      // Capture screenshot, passing the activeScreenStreams ref for tracking
+      const imageData = await captureScreenshot(captureArea, activeScreenStreams);
       
       // Compress if needed to ensure it's not too large for API
       const compressedImageData = await compressImageIfNeeded(imageData);
@@ -225,18 +238,49 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [captureInterval, captureAndSaveScreenshot]);
 
   const stopCapture = useCallback(() => {
+    // Stop the capture interval
     if (captureIntervalId) {
       window.clearInterval(captureIntervalId);
       setCaptureIntervalId(null);
     }
+    
+    // Clean up any active screen capture streams
+    if (activeScreenStreams.current.length > 0) {
+      console.log(`Cleaning up ${activeScreenStreams.current.length} active media streams`);
+      
+      // Stop all active streams
+      activeScreenStreams.current.forEach(stream => {
+        stream.getTracks().forEach(track => {
+          console.log(`Stopping track: ${track.kind} (${track.id})`);
+          track.stop();
+        });
+      });
+      
+      // Clear the array
+      activeScreenStreams.current = [];
+    }
+    
     setIsCapturing(false);
     setCaptureStatus('Paused');
-  }, [captureIntervalId]);
+    
+    toast({
+      title: "Screen Capture Stopped",
+      description: "All capture resources have been released.",
+    });
+  }, [captureIntervalId, toast]);
 
   const restartCapture = useCallback(() => {
     // Clear old interval
     if (captureIntervalId) {
       window.clearInterval(captureIntervalId);
+    }
+    
+    // Clean up any active streams first
+    if (activeScreenStreams.current.length > 0) {
+      activeScreenStreams.current.forEach(stream => {
+        stream.getTracks().forEach(track => track.stop());
+      });
+      activeScreenStreams.current = [];
     }
     
     // Reset count
@@ -255,7 +299,12 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     // Then set interval
     const intervalId = window.setInterval(captureAndSaveScreenshot, captureInterval * 1000);
     setCaptureIntervalId(intervalId);
-  }, [captureInterval, captureIntervalId, captureAndSaveScreenshot]);
+    
+    toast({
+      title: "Screen Capture Restarted",
+      description: "All previous captures have been cleared.",
+    });
+  }, [captureInterval, captureIntervalId, captureAndSaveScreenshot, toast]);
 
   const deleteScreenshot = useCallback(async (id: number) => {
     try {
