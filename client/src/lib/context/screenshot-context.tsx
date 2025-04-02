@@ -187,7 +187,8 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
           // Get a frame from our capture engine
           const frameData = await captureFrame(0.8);
           if (!frameData) {
-            throw new Error('Failed to capture frame');
+            console.warn('Empty frame from capture engine - will try again next interval');
+            return; // Just return without showing error, we'll try again next interval
           }
           
           // Compress the image if needed
@@ -201,10 +202,12 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
           });
           
           if (!response.ok) {
-            throw new Error('Failed to save screenshot');
+            console.error('Failed to save screenshot, server returned:', response.status);
+            return; // Don't show an error since the server itself might be working fine
           }
           
           const newScreenshot = await response.json();
+          console.log('Successfully captured screenshot with ID:', newScreenshot.id);
           
           // Add to state
           setScreenshots(prev => {
@@ -260,16 +263,13 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
           }
         } catch (error) {
           console.error('Error capturing and saving frame:', error);
-          toast({
-            title: 'Screenshot Capture Failed',
-            description: 'Failed to capture or save the screenshot.',
-            variant: 'destructive',
-          });
+          // Don't show error toasts for individual frame captures as they're distracting
+          // and the user will see the frames appear in the gallery anyway
         }
       };
       
       // Capture immediately
-      saveCurrentFrame();
+      await saveCurrentFrame();
       
       // Set up interval for regular captures
       const intervalId = window.setInterval(saveCurrentFrame, captureInterval * 1000);
