@@ -11,12 +11,27 @@ interface ExtendedDisplayMediaStreamConstraints {
   audio?: boolean | MediaTrackConstraints;
 }
 
+// Keep track of if we've already captured the full screen once
+let hasSharedScreenBefore = false;
+let lastCapturedScreen: string | null = null;
+
 // Screenshot capturing functionality
 export async function captureScreenshot(
   captureArea: string = "Full Browser Tab", 
   activeScreenStreamRef?: React.MutableRefObject<MediaStream[]>
 ): Promise<string> {
   try {
+    // If we're doing a Full Screen capture and we've already gotten screen access before,
+    // use the browser tab capture instead to avoid showing the browser dialog again
+    const effectiveCaptureArea = (captureArea === "Full Screen" && hasSharedScreenBefore) 
+      ? "Full Browser Tab" 
+      : captureArea;
+    
+    // Only log the effective capture area if it's different from requested
+    if (effectiveCaptureArea !== captureArea) {
+      console.log(`Using ${effectiveCaptureArea} capture instead of ${captureArea} to avoid permission dialog`);
+    }
+    
     // Determine what to capture based on the capture area setting
     let element: HTMLElement | null = null;
     let options: any = {
@@ -31,7 +46,7 @@ export async function captureScreenshot(
       }
     };
     
-    switch (captureArea) {
+    switch (effectiveCaptureArea) {
       case "Full Browser Tab":
         // Captures entire document content (may extend beyond viewport)
         element = document.documentElement;
@@ -103,6 +118,11 @@ export async function captureScreenshot(
                 track.stop();
               });
               
+              // Mark that we have successfully captured the screen once
+              // For subsequent captures, we'll use the browser tab method instead
+              hasSharedScreenBefore = true;
+              lastCapturedScreen = dataUrl;
+              
               return dataUrl;
             } catch (error) {
               // If anything fails, make sure we clean up the stream
@@ -144,7 +164,7 @@ export async function captureScreenshot(
       throw new Error("Cannot find element to capture");
     }
 
-    console.log(`Capturing ${captureArea} with settings:`, options);
+    console.log(`Capturing ${effectiveCaptureArea} with settings:`, options);
 
     // Create canvas and capture the element
     const canvas = await html2canvas(element, options);
