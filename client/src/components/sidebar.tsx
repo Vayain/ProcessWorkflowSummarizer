@@ -3,10 +3,12 @@ import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
+import { initializeCapture, cleanupCapture } from "@/lib/capture-engine";
 
 export default function Sidebar() {
+  const { toast } = useToast();
   const { 
     captureInterval, 
     setCaptureInterval, 
@@ -15,7 +17,9 @@ export default function Sidebar() {
     formatType,
     setFormatType,
     isRealTimeAnalysis,
-    setIsRealTimeAnalysis
+    setIsRealTimeAnalysis,
+    isCapturing,
+    stopCapture
   } = useScreenshotContext();
   
   const [sessionList] = useState([
@@ -50,26 +54,73 @@ export default function Sidebar() {
         <h2 className="font-medium text-neutral-700 mb-3">Capture Settings</h2>
         
         <div className="mb-4">
-          <Label className="block text-sm text-neutral-600 mb-1">Capture Area</Label>
-          <Select
-            value={captureArea}
-            onValueChange={setCaptureArea}
+          <Label className="block text-sm text-neutral-600 mb-1">Choose Capture Input</Label>
+          <button
+            onClick={async () => {
+              // If currently capturing, stop it first
+              if (isCapturing) {
+                toast({
+                  title: "Please stop capture first",
+                  description: "You need to stop the current capture before selecting a new input source.",
+                  variant: "destructive"
+                });
+                return;
+              }
+              
+              // Clean up any existing capture
+              cleanupCapture();
+              
+              // Update capture area
+              setCaptureArea("Selected Input");
+              
+              toast({
+                title: "Select Input Source",
+                description: "Please select the screen, window, or tab you want to capture.",
+                duration: 5000,
+              });
+              
+              // Initialize the capture with our new engine and handle preview frames
+              const initialized = await initializeCapture((previewImage) => {
+                // This callback will be called whenever a new preview frame is available
+                // We'll use the screenshot context to update the preview state
+                if (previewImage) {
+                  // Send the preview image to the context
+                  if (typeof window !== 'undefined') {
+                    // Use a custom event to communicate with the context
+                    const event = new CustomEvent('screenshot-preview-update', {
+                      detail: { previewImage }
+                    });
+                    window.dispatchEvent(event);
+                  }
+                }
+              });
+              
+              if (initialized) {
+                toast({
+                  title: "Preview Ready",
+                  description: "Screen preview is now active. Click 'Start Capture' when ready to begin.",
+                  duration: 5000,
+                });
+              } else {
+                toast({
+                  title: "Screen Capture Failed",
+                  description: "Unable to access screen capture. Please check your browser permissions and try again.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            className="w-full inline-flex items-center justify-between px-3 py-2 border border-neutral-300 bg-white hover:bg-neutral-50 rounded-md text-sm"
+            type="button"
           >
-            <SelectTrigger className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm">
-              <SelectValue placeholder="Select area" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Full Browser Tab">Full Browser Tab</SelectItem>
-              <SelectItem value="Current Window">Current Window</SelectItem>
-              <SelectItem value="Full Screen">Full Screen</SelectItem>
-              <SelectItem value="Selected Element">Selected Element</SelectItem>
-            </SelectContent>
-            {captureArea === "Full Screen" && (
-              <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                <p>Screen capture will request browser permission to access your screen. You'll be able to select which tab, window, or your entire screen to capture.</p>
-              </div>
-            )}
-          </Select>
+            <span className="flex items-center">
+              <span className="material-icons mr-2" style={{ fontSize: "18px" }}>desktop_windows</span>
+              Choose Input
+            </span>
+            <span className="material-icons" style={{ fontSize: "18px" }}>chevron_right</span>
+          </button>
+          <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+            <p>Screen capture will request browser permission to access your screen. You'll be able to select which tab, window, or your entire screen to capture.</p>
+          </div>
         </div>
         
         <div className="mb-4">
