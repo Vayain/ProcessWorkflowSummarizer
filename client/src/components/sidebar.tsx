@@ -54,7 +54,6 @@ export default function Sidebar() {
         <h2 className="font-medium text-neutral-700 mb-3">Capture Settings</h2>
         
         <div className="mb-4">
-          <Label className="block text-sm text-neutral-600 mb-1">Choose Capture Input</Label>
           <button
             onClick={async () => {
               // If currently capturing, stop it first
