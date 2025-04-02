@@ -144,8 +144,9 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     if (!currentSessionId) return;
     
     try {
-      // Capture screenshot, passing the activeScreenStreams ref for tracking
-      const imageData = await captureScreenshot(captureArea, activeScreenStreams);
+      // For full screen captures, we're now releasing the stream immediately after each capture
+      // This avoids the issue with browser permission dialog staying open
+      const imageData = await captureScreenshot(captureArea);
       
       // Compress if needed to ensure it's not too large for API
       const compressedImageData = await compressImageIfNeeded(imageData);

@@ -55,49 +55,61 @@ export async function captureScreenshot(
           if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
             // Use our extended interface for the constraints
             const constraints: ExtendedDisplayMediaStreamConstraints = {
+              // Set preferCurrentTab to true if supported (works in newer Chrome)
               video: { 
                 mediaSource: "screen",
-                width: { ideal: 3840 }, // 4K support
-                height: { ideal: 2160 }
+                width: { ideal: 1920 }, // Slightly lower resolution for better performance
+                height: { ideal: 1080 }
               }
             };
+            
+            // Request the user to share their screen
             const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
             
-            // Store the stream reference for cleanup
-            if (activeScreenStreamRef) {
-              activeScreenStreamRef.current.push(stream);
-              console.log('Added screen capture stream to active streams, total:', activeScreenStreamRef.current.length);
-            }
-            
-            // Create a video element to capture the screen
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            
-            // Wait for metadata to load for dimensions
-            await new Promise(resolve => {
-              video.onloadedmetadata = resolve;
-              video.play();
-            });
-            
-            // Create a canvas from the video
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            // Draw the video frame to the canvas
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // In single capture mode, stop all tracks immediately
-            // In continuous capture mode with activeScreenStreamRef, we'll leave the stream running
-            // and clean it up when stopCapture is called
-            if (!activeScreenStreamRef) {
+            try {
+              // Store the stream reference for cleanup
+              if (activeScreenStreamRef) {
+                activeScreenStreamRef.current.push(stream);
+                console.log('Added screen capture stream to active streams, total:', activeScreenStreamRef.current.length);
+              }
+              
+              // Create a video element to capture the screen
+              const video = document.createElement('video');
+              video.srcObject = stream;
+              
+              // Wait for metadata to load for dimensions
+              await new Promise(resolve => {
+                video.onloadedmetadata = resolve;
+                video.play();
+              });
+              
+              // Create a canvas from the video
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              
+              // Draw the video frame to the canvas
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              }
+              
+              // Get the image data
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+              
+              // CRITICAL: Always stop tracks to release the screen sharing permission dialog
+              stream.getTracks().forEach(track => {
+                console.log(`Stopping track: ${track.kind}`);
+                track.stop();
+              });
+              
+              return dataUrl;
+            } catch (error) {
+              // If anything fails, make sure we clean up the stream
+              console.error("Error in screen capture:", error);
               stream.getTracks().forEach(track => track.stop());
+              throw error;
             }
-            
-            // Return the canvas as a data URL
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            return dataUrl;
           } else {
             throw new Error("Screen capture not supported in this browser");
           }
