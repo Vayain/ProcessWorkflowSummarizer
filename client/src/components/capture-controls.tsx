@@ -108,7 +108,9 @@ export default function CaptureControls() {
                 <h4 className="font-medium text-sm">Capture Settings</h4>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Capture Area</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium">Choose Capture Input</label>
+                  </div>
                   <Button
                     variant="outline"
                     className="w-full flex justify-between items-center"
@@ -125,7 +127,7 @@ export default function CaptureControls() {
                       cleanupCapture();
                       
                       // Update capture area
-                      setCaptureArea("Full Screen");
+                      setCaptureArea("Selected Input");
                       
                       // Show info popup
                       toast({
