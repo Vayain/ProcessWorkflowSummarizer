@@ -5,34 +5,67 @@ export async function captureScreenshot(captureArea: string = "Full Browser Tab"
   try {
     // Determine what to capture based on the capture area setting
     let element: HTMLElement | null = null;
+    let options: any = {
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      scale: 1, // Lower scale for better performance and to avoid payload size issues
+      imageTimeout: 0, // No timeout
+      ignoreElements: (el: HTMLElement) => {
+        // Ignore certain elements that might cause issues
+        return el.classList.contains('capture-ignore');
+      }
+    };
     
     switch (captureArea) {
       case "Full Browser Tab":
         element = document.documentElement;
+        options.width = document.documentElement.clientWidth;
+        options.height = document.documentElement.clientHeight;
+        options.windowWidth = document.documentElement.clientWidth;
+        options.windowHeight = document.documentElement.clientHeight;
         break;
       case "Current Window":
         element = document.body;
+        options.width = window.innerWidth;
+        options.height = window.innerHeight;
+        options.windowWidth = window.innerWidth;
+        options.windowHeight = window.innerHeight;
         break;
-      case "Full Screen":
-        element = document.documentElement;
+      case "Selected Element":
+        // For demo purposes, just capture the application container
+        element = document.querySelector('.app-container') as HTMLElement || 
+                 document.querySelector('main') as HTMLElement || 
+                 document.body;
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          options.width = rect.width;
+          options.height = rect.height;
+          options.x = rect.left;
+          options.y = rect.top;
+        }
         break;
       default:
         element = document.documentElement;
+        options.width = window.innerWidth;
+        options.height = window.innerHeight;
     }
 
     if (!element) {
       throw new Error("Cannot find element to capture");
     }
 
-    const canvas = await html2canvas(element, {
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      scale: window.devicePixelRatio,
-    });
+    console.log(`Capturing ${captureArea} with settings:`, options);
 
-    // Convert canvas to base64 image data URL
-    return canvas.toDataURL("image/png");
+    // Create canvas and capture the element
+    const canvas = await html2canvas(element, options);
+
+    // Convert canvas to base64 image data URL with reduced quality to avoid payload issues
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+    
+    console.log(`Screenshot captured successfully. Size: ${estimateBase64ImageSize(dataUrl) / 1024} KB`);
+    
+    return dataUrl;
   } catch (error) {
     console.error("Error capturing screenshot:", error);
     throw error;
