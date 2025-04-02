@@ -20,14 +20,14 @@ export default function CaptureControls() {
   const { 
     isCapturing, 
     startCapture, 
-    stopCapture, 
-    restartCapture,
+    stopCapture,
     captureStatus,
     captureInterval,
     setCaptureInterval,
     captureArea,
     setCaptureArea,
-    screenshotCount
+    screenshotCount,
+    isPreviewActive
   } = useScreenshotContext();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -38,7 +38,7 @@ export default function CaptureControls() {
     if (captureArea === "Full Screen") {
       toast({
         title: "Full Screen Capture Mode Selected",
-        description: "When you start capture, you'll be asked to select a screen, window, or tab to share.",
+        description: "This will show a live preview. Click 'Start Capture' when you're ready to begin capturing screenshots.",
         duration: 6000,
       });
     }
@@ -52,7 +52,7 @@ export default function CaptureControls() {
           <div className="flex justify-between items-center">
             <div>
               <p className="font-bold">Screen Capture Active</p>
-              <p>Your screen is being captured. Click the "Stop Capture" button to end the session.</p>
+              <p>Your screen is being captured. Click the "Stop" button to end the session.</p>
             </div>
             <Button
               variant="destructive"
@@ -60,7 +60,7 @@ export default function CaptureControls() {
               onClick={stopCapture}
             >
               <span className="material-icons mr-1">stop</span>
-              Stop Capture
+              Stop
             </Button>
           </div>
         </div>
@@ -72,9 +72,9 @@ export default function CaptureControls() {
             variant="default"
             className="inline-flex items-center"
             onClick={startCapture}
-            disabled={isCapturing}
+            disabled={isCapturing || !isPreviewActive}
           >
-            <span className="material-icons mr-1">play_arrow</span>
+            <span className="material-icons mr-1">photo_camera</span>
             Start Capture
           </Button>
           
@@ -86,15 +86,6 @@ export default function CaptureControls() {
           >
             <span className="material-icons mr-1">stop</span>
             Stop
-          </Button>
-          
-          <Button
-            variant="secondary"
-            className="inline-flex items-center"
-            onClick={restartCapture}
-          >
-            <span className="material-icons mr-1">refresh</span>
-            Restart
           </Button>
 
           <Popover open={showSettings} onOpenChange={setShowSettings}>
@@ -192,6 +183,12 @@ export default function CaptureControls() {
       <div className="flex items-center text-sm text-neutral-600">
         <span className="material-icons mr-1 text-neutral-400" style={{ fontSize: "16px" }}>info</span>
         <span>Currently capturing: <span className="font-medium">{captureArea}</span></span>
+        {isPreviewActive && !isCapturing && (
+          <span className="ml-2 text-green-600 font-medium flex items-center">
+            <span className="material-icons mr-1 text-green-500" style={{ fontSize: "16px" }}>preview</span>
+            Preview active - press "Start Capture" to begin
+          </span>
+        )}
       </div>
     </div>
   );

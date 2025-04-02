@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { captureScreenshot, compressImageIfNeeded, initScreenCapture, cleanupMediaStream } from '@/lib/screenshot';
+import { captureScreenshot, compressImageIfNeeded, initScreenCapture, cleanupMediaStream, captureFrameFromMediaStream } from '@/lib/screenshot';
 import { analyzeScreenshot } from '@/lib/openai';
 import { getProcessingStatus } from '@/lib/crewai';
 import { apiRequest } from '@/lib/queryClient';
@@ -34,9 +34,10 @@ interface ScreenshotContextType {
   analysisProgress: { current: number; total: number };
   processingProgress: { status: string; percent: number };
   documentationProgress: { status: string; percent: number };
+  isPreviewActive: boolean;
+  previewImageData: string | null;
   startCapture: () => void;
   stopCapture: () => void;
-  restartCapture: () => void;
   deleteScreenshot: (id: number) => Promise<void>;
   updateScreenshotDescription: (id: number, description: string) => Promise<void>;
 }
@@ -58,6 +59,8 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [captureIntervalId, setCaptureIntervalId] = useState<number | null>(null);
   const [currentDescription, setCurrentDescription] = useState('');
   const [latestScreenshot, setLatestScreenshot] = useState<Screenshot | null>(null);
+  const [isPreviewActive, setIsPreviewActive] = useState(false);
+  const [previewImageData, setPreviewImageData] = useState<string | null>(null);
   
   // Reference to track any active display media streams
   const activeScreenStreams = useRef<MediaStream[]>([]);
@@ -142,6 +145,56 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     });
     setScreenshots(sortedScreenshots);
   }, [sortOrder]);
+  
+  // Effect to handle capture area changes and initialize preview
+  useEffect(() => {
+    // When Full Screen mode is selected, initialize the preview automatically
+    if (captureArea === "Full Screen") {
+      setCaptureStatus('Initializing preview...');
+      
+      // Initialize screen capture for preview
+      initScreenCapture()
+        .then(stream => {
+          if (stream) {
+            setIsPreviewActive(true);
+            setCaptureStatus('Preview active');
+            
+            // Create a preview frame every second
+            const previewInterval = setInterval(async () => {
+              try {
+                if (!isCapturing) {
+                  const frame = await captureFrameFromMediaStream(0.5);
+                  if (frame) {
+                    setPreviewImageData(frame);
+                  }
+                }
+              } catch (error) {
+                console.error('Error updating preview frame:', error);
+              }
+            }, 1000);
+            
+            // Clean up the preview interval when changing capture area
+            return () => {
+              clearInterval(previewInterval);
+              if (!isCapturing) {
+                cleanupMediaStream();
+              }
+            };
+          } else {
+            setIsPreviewActive(false);
+            setCaptureStatus('Preview failed');
+          }
+        })
+        .catch(error => {
+          console.error('Error initializing preview:', error);
+          setIsPreviewActive(false);
+          setCaptureStatus('Preview failed');
+        });
+    } else {
+      setIsPreviewActive(false);
+      setPreviewImageData(null);
+    }
+  }, [captureArea, isCapturing]);
 
   const captureAndSaveScreenshot = useCallback(async () => {
     if (!currentSessionId) return;
@@ -436,9 +489,10 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     analysisProgress,
     processingProgress,
     documentationProgress,
+    isPreviewActive,
+    previewImageData,
     startCapture,
     stopCapture,
-    restartCapture,
     deleteScreenshot,
     updateScreenshotDescription,
   };

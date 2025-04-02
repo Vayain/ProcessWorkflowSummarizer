@@ -9,7 +9,10 @@ export default function LiveView() {
     analysisProgress,
     processingProgress,
     documentationProgress,
-    currentDescription
+    currentDescription,
+    isPreviewActive,
+    previewImageData,
+    captureArea
   } = useScreenshotContext();
 
   return (
@@ -26,18 +29,46 @@ export default function LiveView() {
             <span className="text-neutral-600">Capturing every {captureInterval} seconds</span>
           </div>
         )}
+        
+        {!isCapturing && isPreviewActive && (
+          <div className="flex items-center text-sm">
+            <span className="relative flex h-3 w-3 mr-2">
+              <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span className="text-green-600">Preview active - click "Start Capture" when ready</span>
+          </div>
+        )}
       </div>
       
       <div className="flex-1 border border-neutral-200 rounded-lg bg-white overflow-hidden mb-4 relative">
-        {latestScreenshot ? (
+        {isPreviewActive && previewImageData && !isCapturing ? (
+          // Show the preview image when in preview mode
+          <div className="relative">
+            <img 
+              src={previewImageData} 
+              alt="Preview of the capture area" 
+              className="w-full h-full object-contain"
+            />
+            <div className="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
+              Preview Mode
+            </div>
+          </div>
+        ) : latestScreenshot ? (
+          // Show the latest captured screenshot
           <img 
             src={latestScreenshot.imageData} 
             alt="Latest screenshot of user activity" 
             className="w-full h-full object-contain"
           />
         ) : (
+          // Show a message when no screenshots or preview available
           <div className="w-full h-full flex items-center justify-center">
-            <p className="text-neutral-400">No screenshot captured yet. Click "Start Capture" to begin.</p>
+            {captureArea === "Full Screen" ? (
+              <p className="text-neutral-400">Initializing preview... please allow screen sharing when prompted.</p>
+            ) : (
+              <p className="text-neutral-400">No screenshot captured yet. Click "Start Capture" to begin.</p>
+            )}
           </div>
         )}
         

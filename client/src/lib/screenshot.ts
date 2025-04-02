@@ -164,8 +164,8 @@ export function cleanupMediaStream(): void {
   console.log("Media stream cleaned up");
 }
 
-// Function to capture frame from active media stream
-async function captureFrameFromMediaStream(quality: number = 0.8): Promise<string | null> {
+// Function to capture frame from active media stream - exported for preview functionality
+export async function captureFrameFromMediaStream(quality: number = 0.8): Promise<string | null> {
   try {
     // If we don't have a valid media stream or video element, return null
     if (!activeMediaStream || !activeMediaStream.active || !videoElement) {
