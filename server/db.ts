@@ -18,12 +18,18 @@ export const db = drizzle(sql, { schema });
 
 // Function to run migrations
 export async function runMigrations() {
+  console.log('Running database migrations...');
   try {
-    console.log('Running database migrations...');
     await migrate(db, { migrationsFolder: './migrations' });
     console.log('Migrations completed successfully');
-  } catch (error) {
-    console.error('Error running migrations:', error);
-    throw error;
+  } catch (err) {
+    // Check if error is because tables already exist
+    const error = err as Error;
+    if (error.message && error.message.includes('already exists')) {
+      console.log('Some tables already exist, continuing...');
+    } else {
+      console.error('Error running migrations:', error);
+      throw error;
+    }
   }
 }

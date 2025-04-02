@@ -84,7 +84,7 @@ export class DatabaseStorage implements IStorage {
   async createSession(insertSession: InsertSession): Promise<Session> {
     const session = {
       ...insertSession,
-      startTime: new Date().toISOString(),
+      startTime: new Date(),
       status: "active"
     };
     
@@ -123,7 +123,7 @@ export class DatabaseStorage implements IStorage {
   async createScreenshot(insertScreenshot: InsertScreenshot): Promise<Screenshot> {
     const screenshot = {
       ...insertScreenshot,
-      timestamp: new Date().toISOString()
+      timestamp: new Date()
     };
     
     const [createdScreenshot] = await db.insert(screenshots).values(screenshot).returning();
@@ -206,7 +206,7 @@ export class DatabaseStorage implements IStorage {
   async createDocumentation(insertDoc: InsertDocumentation): Promise<Documentation> {
     const doc = {
       ...insertDoc,
-      createdAt: new Date().toISOString()
+      createdAt: new Date()
     };
     
     const [createdDoc] = await db.insert(documentations).values(doc).returning();
@@ -256,7 +256,10 @@ export class DatabaseStorage implements IStorage {
         }
       ];
       
-      await db.insert(agentConfigs).values(defaultConfigs);
+      // Insert configs one by one to avoid array type issues
+      for (const config of defaultConfigs) {
+        await db.insert(agentConfigs).values(config);
+      }
     }
     
     // Check if any sessions exist
@@ -266,7 +269,7 @@ export class DatabaseStorage implements IStorage {
     if (existingSessions.length === 0) {
       const demoSession = {
         name: "Demo Session",
-        startTime: new Date().toISOString(),
+        startTime: new Date(),
         captureInterval: 2,
         captureArea: "Full Browser Tab",
         status: "active"
@@ -278,28 +281,31 @@ export class DatabaseStorage implements IStorage {
       const demoScreenshots = [
         {
           sessionId: session.id,
-          timestamp: new Date(Date.now() - 4 * 60000).toISOString(),
+          timestamp: new Date(Date.now() - 4 * 60000),
           imageData: "data:image/png;base64,iVBORw0KGg...", // Placeholder base64 data
           description: "The user is logging into the dashboard system by entering credentials on the login form.",
           aiAnalysisStatus: "completed"
         },
         {
           sessionId: session.id,
-          timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
+          timestamp: new Date(Date.now() - 2 * 60000),
           imageData: "data:image/png;base64,iVBORw0KGg...", // Placeholder base64 data
           description: "The user is navigating through menu options in the analytics dashboard, selecting data filtering parameters.",
           aiAnalysisStatus: "completed"
         },
         {
           sessionId: session.id,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           imageData: "data:image/png;base64,iVBORw0KGg...", // Placeholder base64 data
           description: "The user is viewing a project dashboard with multiple analytics graphs showing website traffic data. The main chart displays a performance trend over time with several metrics highlighted in different colors.",
           aiAnalysisStatus: "completed"
         }
       ];
       
-      await db.insert(screenshots).values(demoScreenshots);
+      // Insert screenshots one by one to avoid array type issues
+      for (const screenshot of demoScreenshots) {
+        await db.insert(screenshots).values(screenshot);
+      }
     }
   }
 }

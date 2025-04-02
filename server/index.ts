@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigrations } from "./db";
+import { storage as dbStorage, DatabaseStorage } from "./storage";
 
 const app = express();
 // Increase JSON limit to handle large screenshot payloads
@@ -38,6 +40,30 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Check if we need to run migrations - skip if tables already exist
+    try {
+      await runMigrations();
+      console.log('Database migrations completed successfully');
+    } catch (err) {
+      const migrationError = err as Error;
+      if (migrationError.message && migrationError.message.includes('already exists')) {
+        console.log('Tables already exist, skipping migrations');
+      } else {
+        throw migrationError;
+      }
+    }
+    
+    // Initialize default data in the database if needed
+    if (dbStorage instanceof DatabaseStorage) {
+      await dbStorage.initializeDefaults();
+      console.log('Database initialized with default data');
+    }
+  } catch (error) {
+    console.error('Error during database initialization:', error);
+    process.exit(1);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
