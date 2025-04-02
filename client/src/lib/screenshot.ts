@@ -1,5 +1,16 @@
 import html2canvas from 'html2canvas';
 
+// Extended MediaTrackConstraints interface to include mediaSource
+interface ExtendedMediaTrackConstraints extends MediaTrackConstraints {
+  mediaSource?: string;
+}
+
+// Extended DisplayMediaStreamConstraints interface
+interface ExtendedDisplayMediaStreamConstraints {
+  video?: boolean | ExtendedMediaTrackConstraints;
+  audio?: boolean | MediaTrackConstraints;
+}
+
 // Screenshot capturing functionality
 export async function captureScreenshot(captureArea: string = "Full Browser Tab"): Promise<string> {
   try {
@@ -19,19 +30,72 @@ export async function captureScreenshot(captureArea: string = "Full Browser Tab"
     
     switch (captureArea) {
       case "Full Browser Tab":
+        // Captures entire document content (may extend beyond viewport)
         element = document.documentElement;
-        options.width = document.documentElement.clientWidth;
-        options.height = document.documentElement.clientHeight;
-        options.windowWidth = document.documentElement.clientWidth;
-        options.windowHeight = document.documentElement.clientHeight;
+        options.width = document.documentElement.scrollWidth;
+        options.height = document.documentElement.scrollHeight;
+        options.windowWidth = document.documentElement.scrollWidth;
+        options.windowHeight = document.documentElement.scrollHeight;
         break;
       case "Current Window":
+        // Captures only what's visible in the browser window/viewport
         element = document.body;
         options.width = window.innerWidth;
         options.height = window.innerHeight;
         options.windowWidth = window.innerWidth;
         options.windowHeight = window.innerHeight;
         break;
+      case "Full Screen":
+        // For capturing the entire screen (multiple monitors)
+        // Note: This will trigger browser permissions request
+        try {
+          if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            // Use our extended interface for the constraints
+            const constraints: ExtendedDisplayMediaStreamConstraints = {
+              video: { 
+                mediaSource: "screen",
+                width: { ideal: 3840 }, // 4K support
+                height: { ideal: 2160 }
+              }
+            };
+            const stream = await navigator.mediaDevices.getDisplayMedia(constraints as DisplayMediaStreamConstraints);
+            
+            // Create a video element to capture the screen
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            
+            // Wait for metadata to load for dimensions
+            await new Promise(resolve => {
+              video.onloadedmetadata = resolve;
+              video.play();
+            });
+            
+            // Create a canvas from the video
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw the video frame to the canvas
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Return the canvas as a data URL
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            return dataUrl;
+          } else {
+            throw new Error("Screen capture not supported in this browser");
+          }
+        } catch (error) {
+          console.error("Full screen capture failed:", error);
+          // Fallback to document capture
+          element = document.documentElement;
+          options.width = document.documentElement.scrollWidth;
+          options.height = document.documentElement.scrollHeight;
+          break;
+        }
       case "Selected Element":
         // For demo purposes, just capture the application container
         element = document.querySelector('.app-container') as HTMLElement || 

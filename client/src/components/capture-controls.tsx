@@ -90,9 +90,15 @@ export default function CaptureControls() {
                     <SelectContent>
                       <SelectItem value="Full Browser Tab">Full Browser Tab</SelectItem>
                       <SelectItem value="Current Window">Current Window</SelectItem>
+                      <SelectItem value="Full Screen">Full Screen</SelectItem>
                       <SelectItem value="Selected Element">Selected Element</SelectItem>
                     </SelectContent>
                   </Select>
+                  {captureArea === "Full Screen" && (
+                    <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                      <p>Screen capture will request browser permission to access your screen. You'll be able to select which tab, window, or your entire screen to capture.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
