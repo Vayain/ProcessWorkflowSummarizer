@@ -13,7 +13,8 @@ import {
   PopoverTrigger 
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CaptureControls() {
   const { 
@@ -30,6 +31,18 @@ export default function CaptureControls() {
   } = useScreenshotContext();
 
   const [showSettings, setShowSettings] = useState(false);
+  const { toast } = useToast();
+  
+  // Show informational message when user switches to Full Screen mode
+  useEffect(() => {
+    if (captureArea === "Full Screen") {
+      toast({
+        title: "Full Screen Capture Mode Selected",
+        description: "When you start capture, you'll be asked to select a screen, window, or tab to share.",
+        duration: 6000,
+      });
+    }
+  }, [captureArea, toast]);
 
   return (
     <div className="bg-white p-4 border-b border-neutral-200">
@@ -102,7 +115,24 @@ export default function CaptureControls() {
                   <label className="text-sm font-medium">Capture Area</label>
                   <Select
                     value={captureArea}
-                    onValueChange={setCaptureArea}
+                    onValueChange={(value) => {
+                      // When selecting Full Screen mode, show an info popup
+                      if (value === "Full Screen" && captureArea !== "Full Screen") {
+                        // Close settings popover first
+                        setShowSettings(false);
+                        
+                        // Update capture area
+                        setCaptureArea(value);
+                        
+                        // If currently capturing, stop it first
+                        if (isCapturing) {
+                          stopCapture();
+                        }
+                      } else {
+                        // For other capture types, just update the setting
+                        setCaptureArea(value);
+                      }
+                    }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select capture area" />

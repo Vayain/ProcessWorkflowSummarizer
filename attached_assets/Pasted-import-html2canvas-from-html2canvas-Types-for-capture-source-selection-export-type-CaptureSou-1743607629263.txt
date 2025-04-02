@@ -1,0 +1,415 @@
+import html2canvas from 'html2canvas';
+
+// Types for capture source selection
+export type CaptureSource = 'visible-area' | 'full-page' | 'element';
+
+// Store the media stream globally to avoid multiple permission prompts
+let activeMediaStream: MediaStream | null = null;
+let videoElement: HTMLVideoElement | null = null;
+
+// Initialize screen capture and return the stream for reuse
+export async function initScreenCapture(): Promise<MediaStream | null> {
+  try {
+    // If we already have an active stream, use it
+    if (activeMediaStream && activeMediaStream.active) {
+      console.log("Reusing existing active media stream", {
+        id: activeMediaStream.id,
+        trackCount: activeMediaStream.getTracks().length
+      });
+      return activeMediaStream;
+    }
+    
+    // Clean up any existing stream that's no longer active
+    cleanupMediaStream();
+    
+    // Check if the browser supports getDisplayMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      console.warn("This browser doesn't support screen capture. Falling back to html2canvas.");
+      return null;
+    }
+    
+    console.log("Requesting screen capture permission...");
+    
+    try {
+      // Request screen capture permission - will show system UI to select what to capture
+      // The constraints below help guide the user to select a content source
+      activeMediaStream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { 
+          displaySurface: "browser",
+          // @ts-ignore - preferCurrentTab is a new property not in all TypeScript definitions yet
+          preferCurrentTab: true,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 15 }
+        },
+        audio: false
+      });
+      
+      if (!activeMediaStream) {
+        console.error("getDisplayMedia returned without a stream but also without an error");
+        return null;
+      }
+      
+      console.log("Media stream acquired", {
+        id: activeMediaStream.id,
+        trackCount: activeMediaStream.getTracks().length,
+        tracks: activeMediaStream.getTracks().map(t => ({
+          kind: t.kind,
+          id: t.id,
+          label: t.label,
+          readyState: t.readyState
+        }))
+      });
+      
+      // Create a video element to capture the stream
+      videoElement = document.createElement('video');
+      videoElement.srcObject = activeMediaStream;
+      videoElement.muted = true; // Ensure it's muted to avoid audio feedback
+      videoElement.setAttribute('playsinline', 'true'); // Important for iOS
+      
+      // Wait for the video to load metadata and start playing
+      await new Promise<void>((resolve, reject) => {
+        if (!videoElement) {
+          reject(new Error("Video element is null"));
+          return;
+        }
+        
+        // Set timeout to avoid hanging indefinitely
+        const timeoutId = setTimeout(() => {
+          reject(new Error("Timed out waiting for video to load metadata"));
+        }, 10000);
+        
+        videoElement.onloadedmetadata = () => {
+          clearTimeout(timeoutId);
+          
+          if (!videoElement) {
+            reject(new Error("Video element became null after metadata loaded"));
+            return;
+          }
+          
+          console.log("Video metadata loaded", {
+            width: videoElement.videoWidth,
+            height: videoElement.videoHeight
+          });
+          
+          videoElement.play().then(() => {
+            console.log("Video playback started");
+            resolve();
+          }).catch(err => {
+            console.error("Failed to start video playback:", err);
+            reject(err);
+          });
+        };
+        
+        videoElement.onerror = (event) => {
+          clearTimeout(timeoutId);
+          // The HTMLMediaElement.error property contains the MediaError object
+          // Safely access videoElement since we've already checked it above
+          const error = videoElement?.error;
+          console.error("Video element error:", error?.message || "Unknown error");
+          reject(error || new Error("Video element error"));
+        };
+      });
+      
+      console.log("Screen capture initialized successfully");
+      
+      // Add an event listener for when the user stops sharing
+      const tracks = activeMediaStream.getVideoTracks();
+      if (tracks.length > 0) {
+        tracks[0].addEventListener('ended', () => {
+          console.log("User stopped sharing screen");
+          cleanupMediaStream();
+        });
+      } else {
+        console.warn("No video tracks found in the media stream");
+      }
+      
+      return activeMediaStream;
+    } catch (permissionError) {
+      console.error("Permission error during getDisplayMedia:", permissionError);
+      
+      // Check for specific permission errors
+      if (permissionError instanceof DOMException) {
+        if (permissionError.name === 'NotAllowedError') {
+          console.error("User denied screen sharing permission");
+        } else if (permissionError.name === 'AbortError') {
+          console.error("Screen sharing dialog was closed/cancelled by the user");
+        }
+      }
+      
+      cleanupMediaStream();
+      throw permissionError; // Re-throw to be handled by caller
+    }
+  } catch (error) {
+    console.error("Failed to initialize screen capture:", error);
+    cleanupMediaStream();
+    return null;
+  }
+}
+
+// Clean up the media stream resources
+export function cleanupMediaStream(): void {
+  if (activeMediaStream) {
+    activeMediaStream.getTracks().forEach(track => {
+      if (track.readyState === 'live') {
+        track.stop();
+      }
+    });
+    activeMediaStream = null;
+  }
+  
+  if (videoElement) {
+    videoElement.srcObject = null;
+    videoElement = null;
+  }
+  
+  console.log("Media stream cleaned up");
+}
+
+// The main screenshot capture function using native browser methods first, then html2canvas as fallback
+export async function captureScreenshot(
+  quality: string = "low", 
+  source: CaptureSource = 'visible-area',
+  targetSelector?: string
+): Promise<string> {
+  try {
+    console.log(`Capturing screenshot with source: ${source}`);
+    
+    // For screen or window capture, use media stream if available or initialize new one
+    if (source === 'visible-area' || source === 'full-page') {
+      try {
+        // Log the current media stream state
+        if (activeMediaStream) {
+          console.log("Active media stream before check:", {
+            active: activeMediaStream.active,
+            id: activeMediaStream.id,
+            tracks: activeMediaStream.getTracks().map(t => ({
+              kind: t.kind,
+              readyState: t.readyState,
+              enabled: t.enabled
+            }))
+          });
+        } else {
+          console.log("No active media stream before initialization attempt");
+        }
+        
+        // Use existing stream or initialize a new one if needed
+        if (!activeMediaStream || !activeMediaStream.active) {
+          console.log("Attempting to initialize screen capture during screenshot capture");
+          const stream = await initScreenCapture();
+          
+          if (!stream) {
+            console.warn("Failed to initialize screen capture during screenshot capture");
+          } else {
+            console.log("Screen capture initialized successfully during screenshot capture");
+          }
+        }
+        
+        // If we have a valid media stream, use it to capture frame
+        if (activeMediaStream && activeMediaStream.active && videoElement) {
+          console.log("Using active media stream for screen capture", {
+            videoWidth: videoElement.videoWidth,
+            videoHeight: videoElement.videoHeight,
+            videoReady: videoElement.readyState
+          });
+          
+          // Create a canvas to capture the video frame
+          const canvas = document.createElement('canvas');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          
+          if (canvas.width === 0 || canvas.height === 0) {
+            console.error("Canvas dimensions are invalid, can't capture screenshot from video");
+            throw new Error("Invalid video dimensions");
+          }
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.error("Failed to get canvas context");
+            throw new Error("Canvas context creation failed");
+          }
+          
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          
+          // Convert to JPEG with higher compression to avoid "request entity too large" errors
+          const compressionQuality = quality === "high" ? 0.7 : quality === "medium" ? 0.5 : 0.3;
+          const imageData = canvas.toDataURL('image/jpeg', compressionQuality);
+          
+          console.log("Screenshot captured successfully via media stream");
+          
+          // Remove the data URL prefix to get just the base64 content
+          return imageData.replace(/^data:image\/jpeg;base64,/, '');
+        } else {
+          console.warn("Media stream not usable for capture:", {
+            streamExists: !!activeMediaStream,
+            streamActive: activeMediaStream?.active,
+            videoElementExists: !!videoElement
+          });
+        }
+      } catch (mediaError) {
+        console.error("Media capture failed with error:", mediaError);
+        console.warn("Falling back to html2canvas");
+        // Fall back to html2canvas if media capture fails
+      }
+    }
+    
+    // If we're here, either getDisplayMedia failed or wasn't available
+    // Use html2canvas as fallback
+    console.log("Using html2canvas for screen capture");
+    
+    // Quality settings
+    let scale = 0.5; // Default low quality
+    if (quality === "medium") scale = 0.75;
+    if (quality === "high") scale = 1.0;
+    
+    // Determine what to capture based on source
+    let element: HTMLElement;
+    let options: any = {
+      scale: scale,
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      imageTimeout: 15000, // Increased timeout for larger elements
+    };
+    
+    switch (source) {
+      case 'full-page':
+        // Capture the full document
+        element = document.documentElement;
+        options.windowWidth = document.documentElement.scrollWidth;
+        options.windowHeight = document.documentElement.scrollHeight;
+        break;
+        
+      case 'element':
+        // Capture a specific element if selector is provided
+        if (targetSelector) {
+          const targetElement = document.querySelector(targetSelector);
+          if (targetElement instanceof HTMLElement) {
+            element = targetElement;
+          } else {
+            throw new Error("Target element not found");
+          }
+        } else {
+          // Default to capturing the main content area
+          const mainContent = document.querySelector('main') || document.querySelector('.content');
+          if (mainContent instanceof HTMLElement) {
+            element = mainContent;
+          } else {
+            element = document.body;
+          }
+        }
+        break;
+        
+      case 'visible-area':
+      default:
+        // Capture only the visible area of the page
+        element = document.body;
+        options.windowWidth = window.innerWidth;
+        options.windowHeight = window.innerHeight;
+        break;
+    }
+    
+    // Capture the screenshot
+    const canvas = await html2canvas(element, options);
+    
+    // Convert to base64 image data (JPEG format with higher compression)
+    const compressionQuality = quality === "high" ? 0.7 : quality === "medium" ? 0.5 : 0.3;
+    const imageData = canvas.toDataURL('image/jpeg', compressionQuality);
+    
+    // Remove the data URL prefix to get just the base64 content
+    return imageData.replace(/^data:image\/jpeg;base64,/, '');
+  } catch (error) {
+    console.error("Error taking screenshot:", error);
+    throw new Error("Failed to capture screenshot: " + (error instanceof Error ? error.message : String(error)));
+  }
+}
+
+// Function to manually blur sensitive information
+// In a real implementation, this would analyze the image and apply ML-based blurring
+export async function blurSensitiveInfo(base64Image: string): Promise<string> {
+  // This is a placeholder. In a production app, you would:
+  // 1. Send the image to a service that detects sensitive information
+  // 2. Apply blurring to those regions
+  // 3. Return the blurred image
+  
+  // For now, we'll just return the original image
+  return base64Image;
+}
+
+// Function to process screenshots (optimize size, apply privacy features)
+export async function processScreenshot(base64Image: string, privacyMode: boolean): Promise<string> {
+  try {
+    // Validate image data
+    if (!base64Image || base64Image.length < 100) {
+      console.error(`Invalid base64 image data: ${base64Image ? 'too short' : 'null or empty'}`);
+      throw new Error('Invalid base64 image data');
+    }
+    
+    // Apply privacy blur if enabled
+    if (privacyMode) {
+      base64Image = await blurSensitiveInfo(base64Image);
+    }
+    
+    // Reduce image size further for very large screenshots
+    // If the base64 image is > 1MB, apply additional compression
+    if (base64Image.length > 1000000) {
+      try {
+        // Create a temporary canvas to recompress the image
+        const img = new Image();
+        
+        // We need to convert base64 back to data URL for the image
+        img.src = 'data:image/jpeg;base64,' + base64Image;
+        
+        // Wait for image to load
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load image for recompression'));
+          // Set a timeout to avoid waiting forever
+          setTimeout(() => reject(new Error('Image load timeout')), 5000);
+        });
+        
+        // Create canvas with reduced dimensions if image is large
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Scale down if dimensions are too large (keep aspect ratio)
+        const maxDimension = 1200;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round(height * (maxDimension / width));
+            width = maxDimension;
+          } else {
+            width = Math.round(width * (maxDimension / height));
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress image
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Failed to get canvas context');
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Apply stronger compression
+        const originalSize = base64Image.length;
+        const recompressedDataUrl = canvas.toDataURL('image/jpeg', 0.3);
+        base64Image = recompressedDataUrl.replace(/^data:image\/jpeg;base64,/, '');
+        
+        console.log(`Image recompressed from ${originalSize} bytes to ${base64Image.length} bytes`);
+      } catch (recompressError) {
+        console.error('Failed to recompress large image:', recompressError);
+        // Continue with original image if recompression fails
+      }
+    }
+    
+    return base64Image;
+  } catch (error) {
+    console.error('Error processing screenshot:', error);
+    throw error;
+  }
+}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { captureScreenshot, compressImageIfNeeded } from '@/lib/screenshot';
+import { captureScreenshot, compressImageIfNeeded, initScreenCapture, cleanupMediaStream } from '@/lib/screenshot';
 import { analyzeScreenshot } from '@/lib/openai';
 import { getProcessingStatus } from '@/lib/crewai';
 import { apiRequest } from '@/lib/queryClient';
@@ -101,7 +101,10 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
         window.clearInterval(captureIntervalId);
       }
       
-      // Clean up any active screen streams
+      // Clean up any active screen streams using the new global cleanup function
+      cleanupMediaStream();
+      
+      // Also clean up any streams tracked in our ref for backward compatibility
       if (activeScreenStreams.current.length > 0) {
         console.log(`Unmounting component, cleaning up ${activeScreenStreams.current.length} active streams.`);
         activeScreenStreams.current.forEach(stream => {
@@ -226,8 +229,51 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [currentSessionId, captureArea, isRealTimeAnalysis, sortOrder, latestScreenshot, toast]);
 
-  const startCapture = useCallback(() => {
+  const startCapture = useCallback(async () => {
     setIsCapturing(true);
+    setCaptureStatus('Preparing...');
+    
+    // For Full Screen mode, initialize the stream first to handle permissions
+    try {
+      if (captureArea === "Full Screen") {
+        // Show a toast while waiting for the user to choose what to share
+        toast({
+          title: "Select what to share",
+          description: "Please select the screen, window, or tab you want to capture",
+        });
+        
+        // Initialize screen capture
+        const stream = await initScreenCapture();
+        
+        if (!stream) {
+          toast({
+            title: "Screen Capture Failed",
+            description: "Unable to access screen capture. Please try again.",
+            variant: "destructive",
+          });
+          setIsCapturing(false);
+          setCaptureStatus('Failed');
+          return;
+        }
+        
+        // Success - screen is ready to capture
+        toast({
+          title: "Ready to Capture",
+          description: "Screen capture initialized successfully!",
+        });
+      }
+    } catch (error) {
+      console.error("Error initializing capture:", error);
+      toast({
+        title: "Screen Capture Failed",
+        description: error instanceof Error ? error.message : "Unknown error initializing capture",
+        variant: "destructive",
+      });
+      setIsCapturing(false);
+      setCaptureStatus('Failed');
+      return;
+    }
+    
     setCaptureStatus('Capturing');
     
     // Capture immediately
@@ -236,7 +282,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     // Then set interval
     const intervalId = window.setInterval(captureAndSaveScreenshot, captureInterval * 1000);
     setCaptureIntervalId(intervalId);
-  }, [captureInterval, captureAndSaveScreenshot]);
+  }, [captureInterval, captureAndSaveScreenshot, captureArea, toast]);
 
   const stopCapture = useCallback(() => {
     // Stop the capture interval
@@ -245,9 +291,12 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       setCaptureIntervalId(null);
     }
     
-    // Clean up any active screen capture streams
+    // Clean up any screen capture resources using the global cleanup function
+    cleanupMediaStream();
+    
+    // Also clean up any streams in our ref for backward compatibility
     if (activeScreenStreams.current.length > 0) {
-      console.log(`Cleaning up ${activeScreenStreams.current.length} active media streams`);
+      console.log(`Cleaning up ${activeScreenStreams.current.length} active media streams from ref`);
       
       // Stop all active streams
       activeScreenStreams.current.forEach(stream => {
@@ -276,7 +325,10 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       window.clearInterval(captureIntervalId);
     }
     
-    // Clean up any active streams first
+    // Clean up any screen capture resources using the global cleanup function
+    cleanupMediaStream();
+    
+    // Also clean up any streams tracked in our ref for backward compatibility
     if (activeScreenStreams.current.length > 0) {
       activeScreenStreams.current.forEach(stream => {
         stream.getTracks().forEach(track => track.stop());
@@ -290,7 +342,14 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     setLatestScreenshot(null);
     setCurrentDescription('');
     
-    // Start new capture
+    // Start new capture - for Full Screen mode, we'll initialize the stream first
+    if (captureArea === "Full Screen") {
+      // Initialize the stream but don't wait for it, it will be done in captureScreenshot
+      initScreenCapture().catch(error => {
+        console.error("Failed to initialize screen capture during restart:", error);
+      });
+    }
+    
     setCaptureStatus('Restarted');
     setIsCapturing(true);
     
@@ -305,7 +364,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       title: "Screen Capture Restarted",
       description: "All previous captures have been cleared.",
     });
-  }, [captureInterval, captureIntervalId, captureAndSaveScreenshot, toast]);
+  }, [captureInterval, captureIntervalId, captureAndSaveScreenshot, captureArea, toast]);
 
   const deleteScreenshot = useCallback(async (id: number) => {
     try {
