@@ -1,0 +1,252 @@
+Product Requirements Document (PRD)
+Activity Documentation Tool with AI-Powered Analysis
+1. Overview
+1.1 Product Vision
+A web application that automatically captures screenshots of user activity, analyzes them with GPT-4o vision model, and generates comprehensive, structured documentation of user activities.
+1.2 Objectives
+
+Create a seamless user activity documentation tool
+Utilize AI to transform screenshots into detailed activity descriptions
+Generate structured documentation that accurately reflects user activities
+Provide customizable agent-based processing for refined results
+Enable flexible documentation output in multiple formats
+
+2. User Requirements
+2.1 Target Users
+Individuals who need to document their activities for:
+
+Training material creation
+Process documentation
+Workflow analysis
+Knowledge transfer
+
+2.2 User Stories
+
+As a user, I want to start/stop/restart the screenshot capture process at will.
+As a user, I want to adjust the frequency of screenshot captures.
+As a user, I want to see screenshots in real-time as they're being captured.
+As a user, I want to view and potentially edit LLM-generated descriptions before final documentation.
+As a user, I want to customize the AI agents that process my screenshots.
+As a user, I want to export documentation in multiple formats (PDF, HTML, Markdown).
+As a user, I want different levels of detail in the generated documentation.
+
+3. Technical Requirements
+3.1 Screenshot Capture
+
+Default Frequency: Every 2 seconds
+Adjustable Range: Allow users to set capture intervals (minimum: 1 second, maximum: 60 seconds)
+Capture Control: Start, stop, and restart functionality
+Capture Area: Full browser tab, window, or monitor (user-selectable)
+Format: PNG or JPEG (optimized for AI model consumption)
+
+3.2 LLM Integration
+
+Primary Model: GPT-4o with vision capabilities
+API Integration: Direct API calls to OpenAI
+Prompt Engineering: Optimized prompts for activity recognition and description
+Processing Queue: Efficient handling of screenshot analysis requests
+
+3.3 Database
+
+Storage of:
+
+Raw screenshots (with timestamps)
+LLM-generated descriptions
+Final documentation
+Agent configurations
+
+
+Use database technology supported by Replit (likely SQLite or MongoDB)
+
+3.4 CrewAI Agent System
+
+Agent Roles:
+
+Analyzer: Processes LLM-generated descriptions for accuracy and completeness
+Writer: Creates cohesive documentation from individual descriptions
+Reviewer: Checks for consistency, clarity, and usefulness
+Orchestrator: Manages workflow between agents
+
+
+Customization: User-adjustable system prompts for each agent
+Orchestration: Configurable workflow between agents
+
+3.5 Documentation Generation
+
+Structure: Chronological organization of activities
+Elements: Screenshots, descriptions, timestamps
+Output Formats: PDF, HTML, Markdown
+Detail Levels: Configurable granularity (summary, standard, detailed)
+
+4. Functional Specifications
+4.1 User Interface
+
+Main Dashboard:
+
+Screenshot capture controls (start, stop, restart)
+Interval adjustment slider/input
+Real-time screenshot display
+Status indicators
+
+
+Screenshots Review Page:
+
+Gallery view of all captured screenshots
+Timestamp and LLM-generated description for each
+Edit capability for descriptions
+Selection/deletion controls
+
+
+Agent Configuration Page:
+
+System prompt editors for each agent
+Orchestration workflow settings
+Preview of agent outputs
+
+
+Documentation Generation Page:
+
+Format selection (PDF, HTML, Markdown)
+Detail level adjustment
+Preview of final documentation
+Download/export controls
+
+
+
+4.2 Screenshot Processing Pipeline
+
+Capture screenshot at specified interval
+Store raw screenshot in database with timestamp
+Send to GPT-4o for analysis and description
+Store LLM-generated description in database
+Display screenshot and description in UI
+Allow user editing of description if desired
+
+4.3 CrewAI Processing Pipeline
+
+Analyzer agent reviews all descriptions for a session
+Writer agent creates draft documentation
+Reviewer agent checks for consistency and quality
+Orchestrator manages the flow and handles exceptions
+Final documentation presented to user for export
+
+4.4 Output Generation
+
+Generate documentation in selected format
+Include all selected screenshots with timestamps
+Organize chronologically
+Apply selected detail level filtering
+Allow download/export of final documentation
+
+5. Non-Functional Requirements
+5.1 Performance
+
+Screenshot capture should not significantly impact browser performance
+LLM analysis should complete within 5 seconds per screenshot
+UI should remain responsive during capture and processing
+
+5.2 Scalability
+
+Handle sessions with up to 500 screenshots
+Support documentation generation for extended activity sessions
+
+5.3 Error Handling
+
+Graceful handling of LLM API failures
+Retry mechanism for failed analyses
+User notification for persistent issues
+Option to proceed with partial documentation if some screenshots fail analysis
+
+6. Technical Architecture
+6.1 Frontend
+
+React-based web application
+Real-time updates using WebSockets or similar technology
+Responsive design for various screen sizes
+
+6.2 Backend
+
+Node.js or Python-based server
+RESTful API for client-server communication
+Integration with OpenAI API
+CrewAI implementation for agent orchestration
+
+6.3 Database
+
+Structured storage for all assets
+Efficient query capabilities for documentation generation
+Proper indexing for performance
+
+6.4 External Integrations
+
+OpenAI GPT-4o API
+CrewAI framework or similar agent orchestration system
+PDF/document generation libraries
+
+7. Implementation Phases
+7.1 Phase 1: Core Functionality
+
+Basic UI implementation
+Screenshot capture mechanism
+Simple LLM integration for description generation
+Basic storage functionality
+
+7.2 Phase 2: Agent System
+
+CrewAI integration
+Agent configuration interface
+Basic documentation generation
+
+7.3 Phase 3: Advanced Features
+
+Multiple output formats
+Detail level adjustments
+Enhanced UI with real-time previews
+Performance optimizations
+
+8. Testing Requirements
+8.1 Functional Testing
+
+Verify screenshot capture at various intervals
+Test LLM description accuracy
+Validate documentation generation in all formats
+Confirm agent customization functionality
+
+8.2 Performance Testing
+
+Measure impact on browser performance during capture
+Test with various screenshot volumes
+Evaluate LLM response times
+
+8.3 User Testing
+
+Validate usability of UI components
+Test documentation readability and usefulness
+Gather feedback on agent effectiveness
+
+9. Limitations and Constraints
+9.1 Technical Limitations
+
+Browser-based screenshot capture limitations
+LLM API rate limits and costs
+Processing time for large volumes of screenshots
+
+9.2 Known Issues
+
+Potential accuracy limitations in LLM descriptions
+Performance impact during high-frequency captures
+Limited to web application context
+
+10. Future Considerations
+10.1 Feature Expansion
+
+Multiple LLM support
+Advanced privacy controls
+Integration with productivity tools
+Video capture capabilities
+
+10.2 Platform Expansion
+
+Browser extension version
+Desktop application version
+Mobile support
