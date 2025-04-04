@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeScreenshot } from '@/lib/openai';
-import { getProcessingStatus } from '@/lib/crewai';
+import { getProcessingStatus, processSessionWithCrewAI } from '@/lib/crewai';
 import { captureFrame, cleanupCapture, compressImage, isCaptureActive } from '@/lib/capture-engine';
 
 interface Screenshot {
@@ -40,6 +40,7 @@ interface ScreenshotContextType {
   stopCapture: () => void;
   deleteScreenshot: (id: number) => Promise<void>;
   updateScreenshotDescription: (id: number, description: string) => Promise<void>;
+  startManualAnalysis: (screenshotIds?: number[]) => Promise<void>;
 }
 
 const ScreenshotContext = createContext<ScreenshotContextType | undefined>(undefined);
@@ -51,7 +52,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [captureInterval, setCaptureInterval] = useState(2);
   const [captureArea, setCapArea] = useState('Full Screen');
   const [formatType, setFormatType] = useState('PNG');
-  const [isRealTimeAnalysis, setIsRealTimeAnalysis] = useState(true);
+  const [isRealTimeAnalysis, setIsRealTimeAnalysis] = useState(false);
   const [captureStatus, setCaptureStatus] = useState('Ready');
   const [screenshotCount, setScreenshotCount] = useState(0);
   const [sortOrder, setSortOrder] = useState('newest');
@@ -379,6 +380,93 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     }
   }, [latestScreenshot]);
 
+  // Function to manually start analysis for specific screenshots or all screenshots in the session
+  const startManualAnalysis = useCallback(async (screenshotIds?: number[]) => {
+    if (!currentSessionId) return;
+    
+    try {
+      // If specific screenshot IDs are provided, analyze only those
+      if (screenshotIds && screenshotIds.length > 0) {
+        // Mark the selected screenshots as pending analysis
+        setScreenshots(prev => 
+          prev.map(s => 
+            screenshotIds.includes(s.id) 
+              ? { ...s, aiAnalysisStatus: 'pending' } 
+              : s
+          )
+        );
+        
+        // Process each screenshot
+        for (const id of screenshotIds) {
+          const screenshot = screenshots.find(s => s.id === id);
+          if (!screenshot) continue;
+          
+          try {
+            // Analyze the screenshot
+            const description = await analyzeScreenshot(id, screenshot.imageData);
+            
+            // Update in state
+            setScreenshots(prev => 
+              prev.map(s => s.id === id 
+                ? { ...s, description, aiAnalysisStatus: 'completed' } 
+                : s
+              )
+            );
+            
+            // Update on server
+            await apiRequest('PATCH', `/api/screenshots/${id}`, {
+              description,
+              aiAnalysisStatus: 'completed'
+            });
+            
+            if (latestScreenshot?.id === id) {
+              setLatestScreenshot(prev => 
+                prev ? { ...prev, description, aiAnalysisStatus: 'completed' } : null
+              );
+              setCurrentDescription(description);
+            }
+          } catch (error) {
+            console.error(`Error analyzing screenshot ${id}:`, error);
+            
+            // Mark as failed
+            setScreenshots(prev => 
+              prev.map(s => s.id === id 
+                ? { ...s, aiAnalysisStatus: 'failed' } 
+                : s
+              )
+            );
+            
+            if (latestScreenshot?.id === id) {
+              setLatestScreenshot(prev => 
+                prev ? { ...prev, aiAnalysisStatus: 'failed' } : null
+              );
+            }
+          }
+        }
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Analyzed ${screenshotIds.length} selected screenshots.`,
+        });
+      } else {
+        // No specific IDs provided, use the server-side batch processing
+        await processSessionWithCrewAI(currentSessionId);
+        
+        toast({
+          title: "LLM Analysis Started",
+          description: "Processing all screenshots in this session.",
+        });
+      }
+    } catch (error) {
+      console.error('Error starting manual analysis:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not start LLM analysis. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [currentSessionId, screenshots, latestScreenshot, toast]);
+
   const value = {
     screenshots,
     latestScreenshot,
@@ -405,6 +493,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     stopCapture,
     deleteScreenshot,
     updateScreenshotDescription,
+    startManualAnalysis,
   };
 
   return (

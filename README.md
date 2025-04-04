@@ -1,114 +1,205 @@
 # Activity Documentation Tool with AI-Powered Analysis
 
-A comprehensive web application that captures, analyzes, and documents user activities using advanced screenshot technology and AI-powered insights.
+![Activity Documentation Tool Banner](./generated-icon.png)
 
-![Activity Documentation Tool](generated-icon.png)
+A comprehensive web application for intelligent screenshot capture, analysis, and documentation powered by advanced AI technologies. This tool helps you document user activities by capturing screenshots at regular intervals, analyzing them with AI, and generating detailed documentation automatically.
+
+## Table of Contents
+
+- [Features](#features)
+- [Demo](#demo)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage Guide](#usage-guide)
+- [Architecture](#architecture)
+- [API Reference](#api-reference)
+- [Dependencies](#dependencies)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
-- **Advanced Screenshot Capture System**
-  - Multiple capture modes (Browser Tab, Window, Full Screen, Selected Element)
-  - Persistent screen capture permissions for smoother experience
-  - Automatic interval-based capture with configurable timing
-  - Memory and resource-efficient screen recording
+- **Intelligent Screen Capture**: Capture screenshots from tabs, windows, or full screens at customizable intervals.
+- **AI-Powered Analysis**: Each screenshot is processed by OpenAI's GPT-4o vision model to generate detailed descriptions of the user's activity.
+- **Real-time Processing**: See your captures and their AI-generated descriptions as they happen.
+- **Documentation Generation**: Automatically create structured documentation in various formats from your session's screenshots.
+- **Optimized Performance**: Efficient image handling with compression, virtualized lists, and pagination to maintain performance even with numerous screenshots.
+- **Fully Responsive UI**: Clean, intuitive interface built with modern design principles using React and ShadCN UI.
 
-- **AI-Powered Analysis**
-  - Real-time activity recognition using OpenAI's GPT-4o vision model
-  - Automatic description generation for each screenshot
-  - CrewAI agent-based workflow for complex activity processing
+## Demo
 
-- **Documentation Generation**
-  - Multiple export formats (Markdown, HTML, PDF)
-  - Customizable detail levels for generated documentation
-  - Activity timeline visualization
+[Live Demo](https://your-app-url.com) - *Coming soon*
 
-- **Responsive Interface**
-  - Modern, user-friendly design with ShadcN components
-  - Real-time capture status and progress tracking
-  - Gallery view of captured screenshots with editing capabilities
+![Demo Video](docs/demo.gif)
 
-## Technology Stack
+## Quick Start
 
-- **Frontend**: React, TanStack Query, Tailwind CSS, ShadcN/UI
-- **Backend**: Express.js, Drizzle ORM
-- **Database**: PostgreSQL
-- **AI Integration**: OpenAI API, CrewAI
-- **Screenshot Technology**: HTML2Canvas, Screen Capture API
+1. Clone the repository
+2. Install dependencies with `npm install`
+3. Set up your OpenAI API key in environment variables
+4. Start the application with `npm run dev`
+5. Navigate to http://localhost:5000 in your browser
 
-## Getting Started
+## Installation
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js (v18+)
 - PostgreSQL database
 - OpenAI API key
 
-### Installation
+### Step 1: Clone the repository
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/activity-documentation-tool.git
-   cd activity-documentation-tool
-   ```
+```bash
+git clone https://github.com/yourusername/activity-documentation-tool.git
+cd activity-documentation-tool
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### Step 2: Install dependencies
 
-3. Configure environment variables:
-   Create a `.env` file in the root directory with the following variables:
-   ```
-   DATABASE_URL=postgresql://username:password@host:port/database
-   OPENAI_API_KEY=your_openai_api_key
-   ```
+```bash
+npm install
+```
 
-4. Set up the database:
-   ```bash
-   npm run db:push
-   ```
+### Step 3: Configure environment variables
 
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+Create a `.env` file in the root directory with the following variables:
 
-6. Open your browser and navigate to `http://localhost:5000`
+```
+DATABASE_URL=postgresql://username:password@localhost:5432/activity_docs
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
-## Usage
+### Step 4: Initialize the database
 
-1. **Configure Capture Settings**:
-   - Select capture area (Browser Tab, Window, Full Screen, Element)
-   - Set capture interval (1-30 seconds)
-   - Enable/disable real-time AI analysis
+```bash
+npm run db:push
+```
 
-2. **Start Capture**:
-   - Click "Start Capture" to begin recording
-   - For Full Screen mode, you'll be prompted to select what to share
+### Step 5: Start the development server
 
-3. **Review & Edit**:
-   - View captured screenshots in the gallery
-   - Edit auto-generated descriptions if needed
+```bash
+npm run dev
+```
 
-4. **Generate Documentation**:
-   - Select output format and detail level
-   - Generate comprehensive documentation of captured activities
+## Usage Guide
+
+### Getting Started
+
+1. **Choose Input Source**: Click the "Choose Input" button to select which screen, window, or tab you want to capture.
+2. **Configure Capture Settings**: Set the capture interval and format in the settings panel.
+3. **Start Capturing**: Click "Start Capture" to begin taking screenshots at the specified interval.
+4. **Review Captures**: View your screenshots in the gallery as they are captured and analyzed.
+5. **Generate Documentation**: When you're finished capturing, click "Generate Documentation" to create a structured document from your screenshots.
+
+### Advanced Features
+
+- **Real-time AI Analysis**: Toggle this option to get immediate AI descriptions of each screenshot as it's captured.
+- **Custom Descriptions**: Edit the AI-generated descriptions to add your own notes or corrections.
+- **Session Management**: Create and switch between multiple capture sessions.
+- **Filtering & Sorting**: Organize your screenshots by time, analysis status, or custom filters.
 
 ## Architecture
 
 The application follows a modern full-stack architecture:
 
-- **Client**: React-based SPA with component-based UI
-- **Server**: Express.js REST API with PostgreSQL database
-- **Database**: Drizzle ORM for type-safe database operations
-- **AI Processing**: CrewAI agents for complex multi-stage analysis
+- **Frontend**: React with TypeScript, ShadCN UI, and TanStack Query
+- **Backend**: Express.js API server
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI Processing**: OpenAI GPT-4o integration for vision-based analysis
+- **State Management**: React Context API with custom hooks
+
+### Directory Structure
+
+```
+/
+├── client/           # Frontend React application
+│   ├── src/
+│   │   ├── components/  # React components
+│   │   ├── lib/         # Utility functions and modules
+│   │   ├── hooks/       # Custom React hooks
+│   │   └── pages/       # Page components for routing
+├── server/           # Backend Express server
+│   ├── routes.ts        # API route definitions
+│   ├── storage.ts       # Data access layer
+│   └── openai.ts        # OpenAI integration
+├── shared/           # Shared code between frontend and backend
+│   └── schema.ts        # Database schema definitions
+└── docs/             # Documentation
+```
+
+## API Reference
+
+The application exposes the following API endpoints:
+
+### Screenshots
+
+- `GET /api/screenshots` - Get screenshots (with optional filtering)
+- `POST /api/screenshots` - Create a new screenshot
+- `GET /api/screenshots/:id` - Get a specific screenshot
+- `PATCH /api/screenshots/:id` - Update a screenshot (e.g., edit description)
+- `DELETE /api/screenshots/:id` - Delete a screenshot
+
+### Sessions
+
+- `GET /api/sessions` - Get all sessions
+- `POST /api/sessions` - Create a new session
+- `GET /api/sessions/:id` - Get a specific session
+- `PATCH /api/sessions/:id` - Update a session
+- `DELETE /api/sessions/:id` - Delete a session
+
+### Documentation
+
+- `POST /api/documentation/generate` - Generate documentation from screenshots
+- `GET /api/documentation/:id` - Get generated documentation
+
+See the [full API documentation](docs/API.md) for details on request and response formats.
+
+## Dependencies
+
+### Frontend
+
+- React
+- TypeScript
+- TanStack Query (React Query)
+- ShadCN UI
+- Tailwind CSS
+- html2canvas
+
+### Backend
+
+- Express.js
+- Drizzle ORM
+- OpenAI Node.js SDK
+- CrewAI (for agent orchestration)
+- PostgreSQL
+
+## Configuration
+
+The application can be configured through environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Port for the server to listen on | `5000` |
+| `DATABASE_URL` | PostgreSQL connection string | - |
+| `OPENAI_API_KEY` | API key for OpenAI services | - |
+| `NODE_ENV` | Environment (development/production) | `development` |
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
-## Acknowledgments
+---
 
-- OpenAI for the GPT-4o vision API
-- CrewAI for the agent-based workflow system
-- ShadcN for the beautiful UI components
+Built with ❤️ using React, Express, and OpenAI

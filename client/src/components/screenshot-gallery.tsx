@@ -9,7 +9,7 @@ interface ScreenshotGalleryProps {
 }
 
 export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
-  const { screenshots, sortOrder, setSortOrder, deleteScreenshot } = useScreenshotContext();
+  const { screenshots, sortOrder, setSortOrder, deleteScreenshot, startManualAnalysis } = useScreenshotContext();
 
   return (
     <div className="w-full lg:w-2/5 border-t lg:border-t-0 lg:border-l border-neutral-200 bg-neutral-50 flex flex-col overflow-hidden">
@@ -94,11 +94,29 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
                     </Button>
                     
                     <div className="flex space-x-1">
-                      <button className="p-1 rounded-md hover:bg-neutral-100">
-                        <span className="material-icons text-neutral-500" style={{ fontSize: "16px" }}>visibility</span>
-                      </button>
                       <button 
                         className="p-1 rounded-md hover:bg-neutral-100"
+                        title="View Full Image"
+                      >
+                        <span className="material-icons text-neutral-500" style={{ fontSize: "16px" }}>visibility</span>
+                      </button>
+                      
+                      {/* Add a new button for analyzing just this screenshot */}
+                      {screenshot.aiAnalysisStatus !== 'pending' && (
+                        <button 
+                          className="p-1 rounded-md hover:bg-neutral-100"
+                          title={screenshot.aiAnalysisStatus === 'completed' ? "Re-analyze this screenshot" : "Analyze this screenshot"}
+                          onClick={() => startManualAnalysis([screenshot.id])}
+                        >
+                          <span className="material-icons text-neutral-500" style={{ fontSize: "16px" }}>
+                            {screenshot.aiAnalysisStatus === 'completed' ? 'refresh' : 'auto_fix_high'}
+                          </span>
+                        </button>
+                      )}
+                      
+                      <button 
+                        className="p-1 rounded-md hover:bg-neutral-100"
+                        title="Delete Screenshot"
                         onClick={() => deleteScreenshot(screenshot.id)}
                       >
                         <span className="material-icons text-neutral-500" style={{ fontSize: "16px" }}>delete_outline</span>

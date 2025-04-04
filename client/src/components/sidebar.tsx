@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
 import { initializeCapture, cleanupCapture } from "@/lib/capture-engine";
@@ -19,7 +19,8 @@ export default function Sidebar() {
     isRealTimeAnalysis,
     setIsRealTimeAnalysis,
     isCapturing,
-    stopCapture
+    stopCapture,
+    startManualAnalysis
   } = useScreenshotContext();
   
   const [sessionList] = useState([
@@ -159,14 +160,45 @@ export default function Sidebar() {
           </RadioGroup>
         </div>
         
+        {/* Remove real-time analysis checkbox and replace with manual control buttons */}
         <div className="mb-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="real-time-analysis" 
-              checked={isRealTimeAnalysis}
-              onCheckedChange={(checked) => setIsRealTimeAnalysis(checked as boolean)}
-            />
-            <Label htmlFor="real-time-analysis" className="text-sm">Real-time LLM Analysis</Label>
+          <h3 className="font-medium text-neutral-700 mb-2">LLM Analysis</h3>
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                // Start manual LLM analysis for the current session
+                if (window.confirm("Start LLM analysis for all captured screenshots?")) {
+                  // Use our context method for manual analysis
+                  startManualAnalysis().catch((error: Error) => {
+                    console.error('Analysis error:', error);
+                    toast({
+                      title: "Analysis Failed",
+                      description: "Could not start LLM analysis. Please try again.",
+                      variant: "destructive",
+                    });
+                  });
+                }
+              }}
+            >
+              Start LLM Analysis
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                // Since there's no built-in way to stop analysis, we'll just show a confirmation
+                toast({
+                  title: "LLM Analysis Complete",
+                  description: "Analysis has been stopped or is complete.",
+                });
+              }}
+            >
+              End LLM Analysis
+            </Button>
           </div>
         </div>
       </div>

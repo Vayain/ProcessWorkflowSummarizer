@@ -1,7 +1,13 @@
-# Dependency directories
+# Node.js dependencies
 node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build files
 dist/
 build/
+.cache/
 
 # Environment variables
 .env
@@ -10,77 +16,42 @@ build/
 .env.test.local
 .env.production.local
 
-# Debug logs
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-logs/
-*.log
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# IDE - WebStorm/IntelliJ
-.idea/
-*.iml
-*.iws
-*.ipr
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-
-# Testing
+# Coverage directory
 coverage/
 
 # Temporary files
 tmp/
 temp/
 
-# Misc
-.cache/
-.parcel-cache/
-.turbo/
-.nitro/
-public/dist/
+# Debug
+.debug/
 
-# Large media files
-*.mp4
-*.avi
-*.mov
-*.webm
-*.mp3
-*.wav
-*.flac
-*.ogg
+# Testing
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
-# Sensitive data
-*.pem
-*.key
-*.p12
-*.pfx
-*.passwd
-credentials.json
-
-# Local database files
+# Database
 *.sqlite
 *.sqlite3
 *.db
+
+# Misc
+.DS_Store
+Thumbs.db
