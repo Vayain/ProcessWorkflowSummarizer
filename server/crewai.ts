@@ -163,3 +163,68 @@ export async function previewAgentOutput(configs: Record<string, any>): Promise<
     "3. Reviewer: Ensured consistency and clarity in final documentation\n" +
     "4. Orchestrator: Coordinated agent workflow, handled edge cases";
 }
+
+/**
+ * Generate documentation for a session using the crew of agents
+ * @param sessionId The session ID to generate documentation for
+ * @param format Output format (markdown, HTML, PDF)
+ * @param detailLevel Level of detail (minimal, standard, detailed)
+ * @returns Promise<string> The generated documentation content
+ */
+export async function generateDocumentationWithCrewAI(
+  sessionId: number,
+  format: string = "markdown",
+  detailLevel: string = "standard"
+): Promise<string> {
+  console.log(`Generating documentation for session ${sessionId} in ${format} format with ${detailLevel} detail level`);
+  
+  try {
+    // Get agent configurations
+    const agentConfigsData = await storage.getAllAgentConfigs();
+    
+    // Convert to Agent objects
+    const agents: Agent[] = agentConfigsData
+      .filter(config => config.isActive === 1)
+      .map(config => ({
+        role: config.type as AgentRole,
+        systemPrompt: config.systemPrompt,
+        isActive: Boolean(config.isActive)
+      }));
+    
+    // Get screenshots for this session
+    const screenshots = await storage.getScreenshotsBySessionId(sessionId);
+    
+    // Check if screenshots have descriptions
+    if (screenshots.length === 0) {
+      return "No screenshots found for this session. Please capture screenshots first.";
+    }
+    
+    // Check if all screenshots have been analyzed
+    const unanalyzedScreenshots = screenshots.filter(s => !s.description || s.aiAnalysisStatus !== 'completed');
+    if (unanalyzedScreenshots.length > 0) {
+      return `${unanalyzedScreenshots.length} screenshots have not been analyzed yet. Please complete the analysis first.`;
+    }
+    
+    console.log(`Processing ${screenshots.length} screenshots with ${agents.length} active agents`);
+    
+    // Prepare the screenshot data
+    const screenshotData = screenshots.map(s => ({
+      id: s.id,
+      timestamp: s.timestamp,
+      description: s.description || "No description available"
+    }));
+    
+    // Import the documentation generation function
+    const { generateDocumentation } = await import('./openai');
+    
+    // Generate documentation using OpenAI
+    const documentation = await generateDocumentation(screenshots, format, detailLevel);
+    
+    console.log(`Documentation generated successfully for session ${sessionId}`);
+    
+    return documentation;
+  } catch (error) {
+    console.error(`Error in generateDocumentationWithCrewAI for session ${sessionId}:`, error);
+    throw error;
+  }
+}

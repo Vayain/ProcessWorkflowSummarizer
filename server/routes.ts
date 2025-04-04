@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeScreenshotImage, generateSuggestions, generateDocumentation } from "./openai";
-import { processSessionWithCrewAI } from "./crewai";
+import { processSessionWithCrewAI, generateDocumentationWithCrewAI } from "./crewai";
 import { body, param, validationResult } from "express-validator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -372,16 +372,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { sessionId, format, detailLevel } = req.body;
         
-        // Get screenshots for this session
-        const screenshots = await storage.getScreenshotsBySessionId(sessionId);
+        // Generate documentation using CrewAI
+        console.log(`Generating documentation for session ${sessionId} with CrewAI agents`);
+        const content = await generateDocumentationWithCrewAI(sessionId, format, detailLevel);
         
-        // Generate documentation using OpenAI
-        const content = await generateDocumentation(screenshots, format, detailLevel);
+        // Check if content is an error message
+        if (content.startsWith("No screenshots found") || content.includes("have not been analyzed yet")) {
+          return res.status(400).json({ message: content });
+        }
+        
+        // Get session details for title
+        const session = await storage.getSession(sessionId);
+        let title = `Session #${sessionId} Documentation`;
+        if (session && session.name) {
+          title = `${session.name} Documentation`;
+        }
         
         // Save the documentation
         const documentation = await storage.createDocumentation({
           sessionId,
-          title: `Session #${sessionId} Documentation`,
+          title,
           content,
           format,
           detailLevel

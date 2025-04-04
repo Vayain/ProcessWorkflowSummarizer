@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "@/components/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function Documentation() {
   const [location, setLocation] = useLocation();
@@ -17,39 +18,83 @@ export default function Documentation() {
   const [detailLevel, setDetailLevel] = useState(2);
   const [isGenerating, setIsGenerating] = useState(false);
   const [documentationContent, setDocumentationContent] = useState("");
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  
+  // Fetch sessions when component mounts
+  useEffect(() => {
+    async function fetchSessions() {
+      setIsLoadingSessions(true);
+      try {
+        const response = await fetch('/api/sessions');
+        if (!response.ok) {
+          throw new Error('Failed to fetch sessions');
+        }
+        const data = await response.json();
+        setSessions(data);
+        
+        // Set current session to the most recent one
+        if (data.length > 0) {
+          // Sort by start time descending and get the latest session
+          const latestSession = [...data].sort((a, b) => 
+            new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+          )[0];
+          
+          setCurrentSessionId(latestSession.id);
+        }
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+      } finally {
+        setIsLoadingSessions(false);
+      }
+    }
+    
+    fetchSessions();
+  }, []);
   
   const handleGenerate = async () => {
+    if (!currentSessionId) {
+      toast({
+        title: "No session selected",
+        description: "Please create a session first before generating documentation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
-      // In a real implementation, this would call the backend to generate documentation
       const response = await fetch("/api/documentation/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          sessionId: 248, // Current session
+          sessionId: currentSessionId,
           format,
           detailLevel: ["minimal", "standard", "detailed"][detailLevel - 1],
         }),
       });
       
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error("Failed to generate documentation");
+        throw new Error(data.message || "Failed to generate documentation");
       }
       
-      const data = await response.json();
       setDocumentationContent(data.content);
       
       toast({
         title: "Documentation generated",
-        description: "Your documentation has been generated successfully.",
+        description: "Your documentation has been generated successfully using CrewAI agents.",
       });
     } catch (error) {
+      console.error("Error generating documentation:", error);
       toast({
         title: "Error generating documentation",
-        description: "There was a problem generating your documentation.",
+        description: error instanceof Error ? error.message : "There was a problem generating your documentation.",
         variant: "destructive",
       });
     } finally {
@@ -108,7 +153,12 @@ export default function Documentation() {
 
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-semibold text-neutral-700 mb-6">Generate Documentation</h1>
+            <h1 className="text-2xl font-semibold text-neutral-700 mb-2">Generate Documentation</h1>
+            {currentSessionId && sessions.length > 0 && (
+              <p className="text-neutral-500 mb-6">
+                Current session: {sessions.find(s => s.id === currentSessionId)?.name || `Session #${currentSessionId}`}
+              </p>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {/* Format Selection */}
@@ -177,7 +227,12 @@ export default function Documentation() {
                       onClick={handleGenerate}
                       disabled={isGenerating}
                     >
-                      {isGenerating ? "Generating..." : "Generate Documentation"}
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating with CrewAI...
+                        </>
+                      ) : "Generate Documentation"}
                     </Button>
                     <Button 
                       variant="outline" 
