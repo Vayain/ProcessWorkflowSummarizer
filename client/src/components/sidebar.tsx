@@ -291,7 +291,8 @@ export default function Sidebar() {
         <div className={`border rounded-lg p-4 mb-4 ${
           getStepStatus('analysis-pending') === 'active' || 
           getStepStatus('analysis-active') === 'active' || 
-          getStepStatus('capture-completed') === 'completed'
+          (getStepStatus('capture-completed') === 'completed' && 
+           getStepStatus('analysis-completed') !== 'completed')
             ? 'border-green-400 bg-green-50' : 
           getStepStatus('analysis-completed') === 'completed' 
             ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
