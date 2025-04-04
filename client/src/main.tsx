@@ -3,7 +3,7 @@ import App from "./App";
 import "./index.css";
 
 // Set title
-document.title = "Activity Documentation Tool";
+document.title = "SCS";
 
 // Add meta tags for better mobile experience
 const viewport = document.querySelector('meta[name="viewport"]');
