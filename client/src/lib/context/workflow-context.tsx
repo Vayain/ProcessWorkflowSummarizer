@@ -42,18 +42,19 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if (location === '/agent-config') {
       // If on agent config page, mark previous steps as completed
-      setCompletedSteps(new Set([
+      const completedStepsArray: WorkflowStep[] = [
         'capture-setup', 
         'capture-active', 
         'capture-completed',
         'analysis-pending',
         'analysis-active',
         'analysis-completed'
-      ]));
+      ];
+      setCompletedSteps(new Set(completedStepsArray));
       setCurrentStep('agent-config');
     } else if (location === '/documentation') {
       // If on documentation page, mark all previous steps as completed
-      setCompletedSteps(new Set([
+      const completedStepsArray: WorkflowStep[] = [
         'capture-setup', 
         'capture-active', 
         'capture-completed',
@@ -61,7 +62,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         'analysis-active',
         'analysis-completed',
         'agent-config'
-      ]));
+      ];
+      setCompletedSteps(new Set(completedStepsArray));
       setCurrentStep('documentation');
     }
   }, []); // Empty dependency array ensures this runs only once on mount

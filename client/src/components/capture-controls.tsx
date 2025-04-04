@@ -245,12 +245,6 @@ export default function CaptureControls() {
       <div className="flex items-center text-sm text-neutral-600">
         <span className="material-icons mr-1 text-neutral-400" style={{ fontSize: "16px" }}>info</span>
         <span>Currently capturing: <span className="font-medium">{captureArea}</span></span>
-        {isPreviewActive && !isCapturing && (
-          <span className="ml-2 text-green-600 font-medium flex items-center">
-            <span className="material-icons mr-1 text-green-500" style={{ fontSize: "16px" }}>preview</span>
-            Preview active - press "Start Capture" to begin
-          </span>
-        )}
       </div>
     </div>
   );

@@ -293,7 +293,7 @@ export default function Sidebar() {
             ? 'border-primary-400 bg-primary-50' : 
           getStepStatus('analysis-completed') === 'completed' 
             ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
-          'border-neutral-200'
+          'border-neutral-200 bg-neutral-50'
         }`}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-medium text-neutral-700">LLM Analysis</h3>
@@ -386,7 +386,7 @@ export default function Sidebar() {
         </div>
         
         {/* Previous Sessions Section with border */}
-        <div className="border border-neutral-200 rounded-lg p-4">
+        <div className="border border-neutral-200 rounded-lg p-4 bg-neutral-50">
           <h2 className="font-medium text-neutral-700 mb-3">Previous Sessions</h2>
           <div className="space-y-2 overflow-y-auto max-h-64 custom-scrollbar">
             {sessionList.map((session) => (

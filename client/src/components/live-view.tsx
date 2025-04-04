@@ -128,51 +128,6 @@ export default function LiveView() {
           </div>
         )}
       </div>
-      
-      <div className="bg-white border border-neutral-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-neutral-700 mb-2">LLM Analysis Status</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-xs text-neutral-600">Screenshots Analyzed</span>
-              <span className="text-xs font-medium text-neutral-700">
-                {analysisProgress.current}/{analysisProgress.total}
-              </span>
-            </div>
-            <Progress 
-              value={(analysisProgress.current / Math.max(analysisProgress.total, 1)) * 100} 
-              className="h-1.5" 
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-xs text-neutral-600">CrewAI Processing</span>
-              <span className="text-xs font-medium text-neutral-700">
-                {processingProgress.status}
-              </span>
-            </div>
-            <Progress 
-              value={processingProgress.percent} 
-              className="h-1.5" 
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between mb-1">
-              <span className="text-xs text-neutral-600">Documentation Generation</span>
-              <span className="text-xs font-medium text-neutral-700">
-                {documentationProgress.status}
-              </span>
-            </div>
-            <Progress 
-              value={documentationProgress.percent} 
-              className="h-1.5" 
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
