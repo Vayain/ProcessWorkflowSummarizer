@@ -11,13 +11,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Screenshots endpoints
   app.get("/api/screenshots", async (req, res) => {
     try {
-      const sessionId = Number(req.query.sessionId);
-      if (isNaN(sessionId)) {
-        return res.status(400).json({ message: "Invalid session ID" });
-      }
+      // Allow getting screenshots without a session ID
+      const sessionIdParam = req.query.sessionId as string;
       
-      const screenshots = await storage.getScreenshotsBySessionId(sessionId);
-      res.json(screenshots);
+      if (sessionIdParam) {
+        const sessionId = Number(sessionIdParam);
+        if (isNaN(sessionId)) {
+          return res.status(400).json({ message: "Invalid session ID" });
+        }
+        
+        const screenshots = await storage.getScreenshotsBySessionId(sessionId);
+        res.json(screenshots);
+      } else {
+        // If no session ID provided, get the latest session and return its screenshots
+        const sessions = await storage.getAllSessions();
+        if (sessions.length === 0) {
+          return res.json([]);
+        }
+        
+        // Sort by start time descending and get the latest session
+        const latestSession = sessions.sort((a, b) => 
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        )[0];
+        
+        const screenshots = await storage.getScreenshotsBySessionId(latestSession.id);
+        res.json(screenshots);
+      }
     } catch (error) {
       console.error("Error fetching screenshots:", error);
       res.status(500).json({ message: "Failed to fetch screenshots" });

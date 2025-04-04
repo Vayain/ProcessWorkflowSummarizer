@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -20,34 +20,155 @@ export default function Sidebar() {
     setIsRealTimeAnalysis,
     isCapturing,
     stopCapture,
-    startManualAnalysis
+    startManualAnalysis,
+    currentSessionId,
+    setCurrentSessionId,
+    screenshotCount
   } = useScreenshotContext();
   
-  const [sessionList] = useState([
-    { id: 247, time: "Today, 9:15 AM" },
-    { id: 246, time: "Yesterday, 3:30 PM" },
-    { id: 245, time: "Yesterday, 11:20 AM" },
-    { id: 244, time: "Aug 12, 2023" },
-  ]);
+  const [sessionList, setSessionList] = useState<{ id: number; time: string }[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  
+  // Fetch sessions from the API when component mounts
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setIsLoadingSessions(true);
+      try {
+        const response = await fetch('/api/sessions');
+        if (response.ok) {
+          const sessions = await response.json();
+          
+          // Format the sessions for display
+          const formattedSessions = sessions.map((session: any) => {
+            const date = new Date(session.startTime);
+            const now = new Date();
+            
+            // Format the time based on how recent it is
+            let timeString;
+            if (date.toDateString() === now.toDateString()) {
+              timeString = `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            } else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) {
+              timeString = `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+              timeString = date.toLocaleDateString();
+            }
+            
+            return {
+              id: session.id,
+              time: timeString
+            };
+          });
+          
+          setSessionList(formattedSessions);
+        } else {
+          console.error('Failed to fetch sessions');
+          toast({
+            title: 'Error',
+            description: 'Failed to load sessions',
+            variant: 'destructive'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load sessions',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoadingSessions(false);
+      }
+    };
+    
+    fetchSessions();
+  }, [toast]);
 
   return (
     <div className="w-64 bg-white border-r border-neutral-200 flex flex-col h-full hidden md:block">
       <div className="p-4 border-b border-neutral-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-medium text-neutral-700">Current Session</h2>
-          <button className="text-sm text-primary-400 hover:text-primary-500">
+          <button 
+            className="text-sm text-primary-400 hover:text-primary-500"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/sessions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    name: `Session ${new Date().toLocaleString()}`,
+                    captureInterval,
+                    captureArea,
+                  }),
+                });
+                
+                if (response.ok) {
+                  const newSession = await response.json();
+                  setCurrentSessionId(newSession.id);
+                  
+                  toast({
+                    title: 'New Session Created',
+                    description: `Session #${newSession.id} is now active.`,
+                  });
+                  
+                  // Refresh the session list
+                  const sessionsResponse = await fetch('/api/sessions');
+                  if (sessionsResponse.ok) {
+                    const sessions = await sessionsResponse.json();
+                    const formattedSessions = sessions.map((session: any) => {
+                      const date = new Date(session.startTime);
+                      const now = new Date();
+                      
+                      let timeString;
+                      if (date.toDateString() === now.toDateString()) {
+                        timeString = `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                      } else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) {
+                        timeString = `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                      } else {
+                        timeString = date.toLocaleDateString();
+                      }
+                      
+                      return {
+                        id: session.id,
+                        time: timeString
+                      };
+                    });
+                    
+                    setSessionList(formattedSessions);
+                  }
+                } else {
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to create new session',
+                    variant: 'destructive',
+                  });
+                }
+              } catch (error) {
+                console.error('Error creating session:', error);
+                toast({
+                  title: 'Error',
+                  description: 'Failed to create new session',
+                  variant: 'destructive',
+                });
+              }
+            }}
+          >
             New
           </button>
         </div>
         
         <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-neutral-600">Session #248</span>
+            <span className="text-sm font-medium text-neutral-600">Session #{currentSessionId || '???'}</span>
             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Active</span>
           </div>
           
-          <div className="text-xs text-neutral-500 mb-1">Started: 10:45 AM</div>
-          <div className="text-xs text-neutral-500">25 screenshots captured</div>
+          <div className="text-xs text-neutral-500 mb-1">
+            {sessionList.find(s => s.id === currentSessionId)?.time || 'Unknown time'}
+          </div>
+          <div className="text-xs text-neutral-500">{screenshotCount} screenshots captured</div>
         </div>
       </div>
       
@@ -163,11 +284,10 @@ export default function Sidebar() {
         {/* Remove real-time analysis checkbox and replace with manual control buttons */}
         <div className="mb-4">
           <h3 className="font-medium text-neutral-700 mb-2">LLM Analysis</h3>
-          <div className="flex space-x-2">
+          <div className="flex flex-col space-y-2">
             <Button
               size="sm"
               variant="outline"
-              className="flex-1"
               onClick={() => {
                 // Start manual LLM analysis for the current session
                 if (window.confirm("Start LLM analysis for all captured screenshots?")) {
@@ -188,7 +308,6 @@ export default function Sidebar() {
             <Button
               size="sm"
               variant="outline"
-              className="flex-1"
               onClick={() => {
                 // Since there's no built-in way to stop analysis, we'll just show a confirmation
                 toast({
@@ -207,7 +326,25 @@ export default function Sidebar() {
         <h2 className="font-medium text-neutral-700 mb-3">Previous Sessions</h2>
         <div className="space-y-2 overflow-y-auto max-h-64 custom-scrollbar">
           {sessionList.map((session) => (
-            <div key={session.id} className="p-2 hover:bg-neutral-100 rounded-md cursor-pointer">
+            <div 
+              key={session.id} 
+              className={`p-2 hover:bg-neutral-100 rounded-md cursor-pointer ${
+                currentSessionId === session.id ? 'bg-neutral-100 border border-neutral-300' : ''
+              }`}
+              onClick={() => {
+                // Change the current session ID to filter screenshots
+                if (currentSessionId !== session.id) {
+                  setCurrentSessionId(session.id);
+                  // Fetch screenshots for the selected session - in a real app
+                  // this would trigger a useEffect that would fetch the screenshots
+                  
+                  toast({
+                    title: `Session #${session.id} Selected`,
+                    description: `Now viewing screenshots from ${session.time}`,
+                  });
+                }
+              }}
+            >
               <div className="text-sm font-medium text-neutral-700">Session #{session.id}</div>
               <div className="text-xs text-neutral-500">{session.time}</div>
             </div>

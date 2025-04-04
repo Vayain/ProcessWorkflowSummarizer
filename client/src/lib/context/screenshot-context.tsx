@@ -36,9 +36,12 @@ interface ScreenshotContextType {
   documentationProgress: { status: string; percent: number };
   isPreviewActive: boolean;
   previewImageData: string | null;
+  currentSessionId: number | null;
+  setCurrentSessionId: (sessionId: number | null) => void;
   startCapture: () => void;
   stopCapture: () => void;
   deleteScreenshot: (id: number) => Promise<void>;
+  deleteAllScreenshots: (sessionId?: number) => Promise<void>;
   updateScreenshotDescription: (id: number, description: string) => Promise<void>;
   startManualAnalysis: (screenshotIds?: number[]) => Promise<void>;
 }
@@ -72,32 +75,12 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [processingProgress, setProcessingProgress] = useState({ status: 'Waiting...', percent: 0 });
   const [documentationProgress, setDocumentationProgress] = useState({ status: 'Waiting...', percent: 0 });
 
-  // Load screenshots from API when component mounts
+  // Set initial session ID when component mounts
   useEffect(() => {
-    // For demo purposes, use a fixed session ID
-    setCurrentSessionId(248);
-    
-    const fetchScreenshots = async () => {
-      try {
-        const response = await fetch('/api/screenshots?sessionId=248');
-        if (response.ok) {
-          const data = await response.json();
-          setScreenshots(data);
-          setScreenshotCount(data.length);
-          if (data.length > 0) {
-            const sorted = [...data].sort((a, b) => 
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            );
-            setLatestScreenshot(sorted[0]);
-            setCurrentDescription(sorted[0].description || '');
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching screenshots:', error);
-      }
-    };
-    
-    fetchScreenshots();
+    // For demo purposes, use a fixed session ID initially
+    if (!currentSessionId) {
+      setCurrentSessionId(248);
+    }
     
     // Cleanup on unmount
     return () => {
@@ -119,6 +102,36 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       }
     };
   }, []);
+  
+  // Fetch screenshots whenever currentSessionId changes
+  useEffect(() => {
+    if (!currentSessionId) return;
+    
+    const fetchScreenshots = async () => {
+      try {
+        const response = await fetch(`/api/screenshots?sessionId=${currentSessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setScreenshots(data);
+          setScreenshotCount(data.length);
+          if (data.length > 0) {
+            const sorted = [...data].sort((a, b) => 
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+            setLatestScreenshot(sorted[0]);
+            setCurrentDescription(sorted[0].description || '');
+          } else {
+            setLatestScreenshot(null);
+            setCurrentDescription('');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching screenshots:', error);
+      }
+    };
+    
+    fetchScreenshots();
+  }, [currentSessionId]);
 
   // Polling for processing status
   useEffect(() => {
@@ -358,6 +371,57 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       });
     }
   }, [screenshots, latestScreenshot, toast]);
+  
+  // Delete all screenshots for the current session or specified session
+  const deleteAllScreenshots = useCallback(async (sessionId?: number) => {
+    try {
+      const targetSessionId = sessionId || currentSessionId;
+      if (!targetSessionId) return;
+      
+      // Confirm before deleting
+      if (!window.confirm(`Are you sure you want to delete all screenshots for session #${targetSessionId}?`)) {
+        return;
+      }
+      
+      // Get the screenshots to delete
+      const screenshotsToDelete = screenshots.filter(s => s.sessionId === targetSessionId);
+      
+      if (screenshotsToDelete.length === 0) {
+        toast({
+          title: 'No Screenshots',
+          description: 'There are no screenshots to delete for this session.',
+        });
+        return;
+      }
+      
+      // Delete each screenshot on the server
+      for (const screenshot of screenshotsToDelete) {
+        await apiRequest('DELETE', `/api/screenshots/${screenshot.id}`, undefined);
+      }
+      
+      // Update state
+      setScreenshots(prev => prev.filter(s => s.sessionId !== targetSessionId));
+      setScreenshotCount(prev => prev - screenshotsToDelete.length);
+      
+      // Update latest screenshot if needed
+      if (latestScreenshot && latestScreenshot.sessionId === targetSessionId) {
+        setLatestScreenshot(null);
+        setCurrentDescription('');
+      }
+      
+      toast({
+        title: 'Screenshots Deleted',
+        description: `Deleted ${screenshotsToDelete.length} screenshots from session #${targetSessionId}.`,
+      });
+    } catch (error) {
+      console.error('Error deleting all screenshots:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'There was an error deleting the screenshots.',
+        variant: 'destructive',
+      });
+    }
+  }, [screenshots, currentSessionId, latestScreenshot, toast]);
 
   // Update screenshot description
   const updateScreenshotDescription = useCallback(async (id: number, description: string) => {
@@ -489,9 +553,12 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     documentationProgress,
     isPreviewActive,
     previewImageData,
+    currentSessionId,
+    setCurrentSessionId,
     startCapture,
     stopCapture,
     deleteScreenshot,
+    deleteAllScreenshots,
     updateScreenshotDescription,
     startManualAnalysis,
   };

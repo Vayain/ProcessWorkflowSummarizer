@@ -3,40 +3,84 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScreenshotGalleryProps {
   onEdit: (screenshotId: number) => void;
 }
 
 export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
-  const { screenshots, sortOrder, setSortOrder, deleteScreenshot, startManualAnalysis } = useScreenshotContext();
+  const { toast } = useToast();
+  const { 
+    screenshots, 
+    sortOrder, 
+    setSortOrder, 
+    deleteScreenshot, 
+    deleteAllScreenshots,
+    startManualAnalysis,
+    currentSessionId
+  } = useScreenshotContext();
 
   return (
     <div className="w-full lg:w-2/5 border-t lg:border-t-0 lg:border-l border-neutral-200 bg-neutral-50 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-neutral-200 bg-white flex justify-between items-center">
-        <h2 className="text-lg font-medium text-neutral-700">Screenshot Gallery</h2>
+      <div className="p-4 border-b border-neutral-200 bg-white flex flex-col space-y-2">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-medium text-neutral-700">Screenshot Gallery</h2>
+          
+          <div className="flex items-center space-x-2">
+            <button className="p-1.5 rounded-md hover:bg-neutral-100">
+              <span className="material-icons text-neutral-600" style={{ fontSize: "20px" }}>filter_list</span>
+            </button>
+            
+            <button className="p-1.5 rounded-md hover:bg-neutral-100">
+              <span className="material-icons text-neutral-600" style={{ fontSize: "20px" }}>search</span>
+            </button>
+            
+            <Select 
+              value={sortOrder} 
+              onValueChange={setSortOrder}
+            >
+              <SelectTrigger className="text-sm border border-neutral-300 rounded-md py-1 px-2 h-auto">
+                <SelectValue placeholder="Sort order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
-        <div className="flex items-center space-x-2">
-          <button className="p-1.5 rounded-md hover:bg-neutral-100">
-            <span className="material-icons text-neutral-600" style={{ fontSize: "20px" }}>filter_list</span>
-          </button>
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-neutral-500">
+            {screenshots.length > 0 ? 
+              `${screenshots.length} screenshot${screenshots.length === 1 ? '' : 's'} in session #${currentSessionId || 'unknown'}` : 
+              'No screenshots'
+            }
+          </div>
           
-          <button className="p-1.5 rounded-md hover:bg-neutral-100">
-            <span className="material-icons text-neutral-600" style={{ fontSize: "20px" }}>search</span>
-          </button>
-          
-          <Select 
-            value={sortOrder} 
-            onValueChange={setSortOrder}
-          >
-            <SelectTrigger className="text-sm border border-neutral-300 rounded-md py-1 px-2 h-auto">
-              <SelectValue placeholder="Sort order" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-            </SelectContent>
-          </Select>
+          {screenshots.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+              onClick={() => {
+                if (currentSessionId) {
+                  deleteAllScreenshots(currentSessionId);
+                } else {
+                  toast({
+                    title: 'No Session Selected',
+                    description: 'Please select a session first.',
+                    variant: 'destructive',
+                  });
+                }
+              }}
+            >
+              <span className="material-icons mr-1" style={{ fontSize: "14px" }}>delete_sweep</span>
+              Delete All
+            </Button>
+          )}
         </div>
       </div>
       
