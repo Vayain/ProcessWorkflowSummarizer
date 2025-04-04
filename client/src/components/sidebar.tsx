@@ -29,60 +29,69 @@ export default function Sidebar() {
   const [sessionList, setSessionList] = useState<{ id: number; name: string; time: string }[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   
-  // Fetch sessions from the API when component mounts
-  useEffect(() => {
-    const fetchSessions = async () => {
-      setIsLoadingSessions(true);
-      try {
-        const response = await fetch('/api/sessions');
-        if (response.ok) {
-          const sessions = await response.json();
+  // Function to fetch and format sessions
+  const fetchSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const response = await fetch('/api/sessions');
+      if (response.ok) {
+        const sessions = await response.json();
+        
+        // Format the sessions for display
+        const formattedSessions = sessions.map((session: any) => {
+          const date = new Date(session.startTime);
+          const now = new Date();
           
-          // Format the sessions for display
-          const formattedSessions = sessions.map((session: any) => {
-            const date = new Date(session.startTime);
-            const now = new Date();
-            
-            // Format the time based on how recent it is
-            let timeString;
-            if (date.toDateString() === now.toDateString()) {
-              timeString = `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-            } else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) {
-              timeString = `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-            } else {
-              timeString = date.toLocaleDateString();
-            }
-            
-            return {
-              id: session.id,
-              name: session.name || `Session #${session.id}`,
-              time: timeString
-            };
-          });
+          // Format the time based on how recent it is
+          let timeString;
+          if (date.toDateString() === now.toDateString()) {
+            timeString = `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          } else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) {
+            timeString = `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          } else {
+            timeString = date.toLocaleDateString();
+          }
           
-          setSessionList(formattedSessions);
-        } else {
-          console.error('Failed to fetch sessions');
-          toast({
-            title: 'Error',
-            description: 'Failed to load sessions',
-            variant: 'destructive'
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching sessions:', error);
+          return {
+            id: session.id,
+            name: session.name || `Session #${session.id}`,
+            time: timeString
+          };
+        });
+        
+        setSessionList(formattedSessions);
+      } else {
+        console.error('Failed to fetch sessions');
         toast({
           title: 'Error',
           description: 'Failed to load sessions',
           variant: 'destructive'
         });
-      } finally {
-        setIsLoadingSessions(false);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load sessions',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+  
+  // Fetch sessions from the API when component mounts or isCapturing changes
+  // This will refresh the session list immediately after stopping capture
+  useEffect(() => {
     fetchSessions();
-  }, [toast]);
+    
+    // Also set up a regular refresh interval
+    const intervalId = setInterval(fetchSessions, 3000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isCapturing, toast]);
 
   return (
     <div className="w-64 bg-white border-r border-neutral-200 flex flex-col h-full hidden md:block">
@@ -114,32 +123,8 @@ export default function Sidebar() {
                     description: `Session #${newSession.id} is now active.`,
                   });
                   
-                  // Refresh the session list
-                  const sessionsResponse = await fetch('/api/sessions');
-                  if (sessionsResponse.ok) {
-                    const sessions = await sessionsResponse.json();
-                    const formattedSessions = sessions.map((session: any) => {
-                      const date = new Date(session.startTime);
-                      const now = new Date();
-                      
-                      let timeString;
-                      if (date.toDateString() === now.toDateString()) {
-                        timeString = `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                      } else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) {
-                        timeString = `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                      } else {
-                        timeString = date.toLocaleDateString();
-                      }
-                      
-                      return {
-                        id: session.id,
-                        name: session.name || `Session #${session.id}`,
-                        time: timeString
-                      };
-                    });
-                    
-                    setSessionList(formattedSessions);
-                  }
+                  // Refresh the session list using our existing function
+                  fetchSessions();
                 } else {
                   toast({
                     title: 'Error',

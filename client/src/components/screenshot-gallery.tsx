@@ -41,9 +41,9 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
         
         const latestScreenshots = await response.json();
         
-        // Only update if we have more screenshots than before
-        // This preserves any local state changes (like pending analysis, etc.)
-        if (latestScreenshots.length > screenshots.length) {
+        // Always update screenshots to ensure we display all the latest ones
+        // This is crucial for real-time display during active capture
+        if (latestScreenshots.length > 0) {
           console.log(`Refreshed screenshots: found ${latestScreenshots.length} (had ${screenshots.length})`);
           
           // Sort according to current preference
@@ -60,15 +60,18 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
       }
     };
     
-    // Set up polling interval when capturing is active
+    // Set up polling interval when capturing is active or when session changes
     let intervalId: number | null = null;
     
+    // Always fetch immediately when session changes or component mounts
+    fetchScreenshots();
+    
+    // Set up a frequent polling interval (every 1 second) when capturing
     if (isCapturing) {
-      // Poll more frequently when capturing is active (every 2 seconds)
-      intervalId = window.setInterval(fetchScreenshots, 2000) as unknown as number;
-      
-      // Fetch immediately
-      fetchScreenshots();
+      intervalId = window.setInterval(fetchScreenshots, 1000) as unknown as number;
+    } else {
+      // Even when not capturing, poll occasionally to show latest data
+      intervalId = window.setInterval(fetchScreenshots, 5000) as unknown as number;
     }
     
     // Clean up on unmount or when dependencies change
@@ -77,7 +80,7 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
         window.clearInterval(intervalId);
       }
     };
-  }, [currentSessionId, isCapturing, sortOrder, screenshots.length, setScreenshots]);
+  }, [currentSessionId, isCapturing, sortOrder, setScreenshots]);
 
   return (
     <div className="w-full lg:w-2/5 border-t lg:border-t-0 lg:border-l border-neutral-200 bg-neutral-50 flex flex-col overflow-hidden">
