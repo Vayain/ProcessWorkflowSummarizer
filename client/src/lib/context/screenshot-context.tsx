@@ -548,11 +548,49 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
         });
       } else {
         // No specific IDs provided, use the server-side batch processing
-        await processSessionWithCrewAI(currentSessionId);
+        // First, mark all screenshots as pending
+        setScreenshots(prev => 
+          prev.map(s => ({ ...s, aiAnalysisStatus: 'pending' }))
+        );
+
+        // Start server-side processing
+        await apiRequest('POST', '/api/process-session', { sessionId: currentSessionId });
+        
+        // Set up a polling mechanism to track progress
+        const pollInterval = setInterval(async () => {
+          try {
+            // Get current status
+            const status = await apiRequest('GET', `/api/processing-status/${currentSessionId}`);
+            
+            // Refresh screenshots to get updated descriptions
+            const updatedScreenshots = await apiRequest('GET', `/api/screenshots?sessionId=${currentSessionId}`);
+            if (updatedScreenshots && Array.isArray(updatedScreenshots)) {
+              setScreenshots(updatedScreenshots);
+            }
+            
+            // Check if processing is complete
+            if (status.analysisProgress.current === status.analysisProgress.total && 
+                status.analysisProgress.total > 0) {
+              clearInterval(pollInterval);
+              
+              toast({
+                title: "LLM Analysis Complete",
+                description: `Successfully analyzed ${status.analysisProgress.current} screenshots.`,
+              });
+            }
+          } catch (error) {
+            console.error('Error polling analysis status:', error);
+          }
+        }, 3000); // Poll every 3 seconds
+        
+        // Set a timeout to clear the interval after 5 minutes to prevent infinite polling
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 5 * 60 * 1000);
         
         toast({
           title: "LLM Analysis Started",
-          description: "Processing all screenshots in this session.",
+          description: "Processing all screenshots in this session. This will update automatically as analysis progresses.",
         });
       }
     } catch (error) {

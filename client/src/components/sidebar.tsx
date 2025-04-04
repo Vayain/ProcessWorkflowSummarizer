@@ -281,7 +281,13 @@ export default function Sidebar() {
               variant="outline"
               onClick={() => {
                 // Start manual LLM analysis for the current session
-                if (window.confirm("Start LLM analysis for all captured screenshots?")) {
+                if (window.confirm("Start LLM analysis for all captured screenshots? This will process each screenshot with OpenAI's GPT-4o vision model to generate detailed descriptions.")) {
+                  // Use our context method for manual analysis
+                  toast({
+                    title: "LLM Analysis Started",
+                    description: "Processing all screenshots. This may take a minute or two depending on the number of screenshots.",
+                  });
+                  
                   // Use our context method for manual analysis
                   startManualAnalysis().catch((error: Error) => {
                     console.error('Analysis error:', error);
