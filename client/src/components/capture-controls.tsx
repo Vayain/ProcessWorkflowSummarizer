@@ -1,4 +1,5 @@
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
+import { useWorkflow } from "@/lib/context/workflow-context";
 import { Button } from "@/components/ui/button";
 import { 
   Popover,
@@ -8,6 +9,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowRight, Check, Clock } from "lucide-react";
 import { initializeCapture, cleanupCapture, captureFrame, isCaptureActive, compressImage } from "@/lib/capture-engine";
 import CreateSessionModal from "@/components/create-session-modal";
 
@@ -24,6 +26,8 @@ export default function CaptureControls() {
     screenshotCount,
     isPreviewActive
   } = useScreenshotContext();
+  
+  const { currentStep, getStepStatus, completeStep, setCurrentStep } = useWorkflow();
 
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
@@ -64,24 +68,45 @@ export default function CaptureControls() {
       <div className="flex flex-wrap items-center justify-between mb-4">
         <div className="flex items-center space-x-2 mb-2 md:mb-0">
           <Button
-            variant="default"
-            className="inline-flex items-center"
-            onClick={startCapture}
+            variant={getStepStatus('capture-setup') === 'active' ? "default" : "outline"}
+            className={`inline-flex items-center relative ${
+              getStepStatus('capture-setup') === 'active' ? 'ring-2 ring-primary-300 shadow-md' : ''
+            }`}
+            onClick={() => {
+              startCapture();
+              
+              // Mark capture-setup as completed
+              completeStep('capture-setup');
+              
+              // Set the next step as active
+              setCurrentStep('capture-active');
+            }}
             disabled={isCapturing || !isPreviewActive}
           >
+            {getStepStatus('capture-setup') === 'active' && (
+              <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-primary-500 animate-pulse bg-white rounded-full" />
+            )}
             <span className="material-icons mr-1">photo_camera</span>
             Start Capture
           </Button>
           
           <Button
             variant={isCapturing ? "destructive" : "secondary"}
-            className="inline-flex items-center"
+            className={`inline-flex items-center ${
+              getStepStatus('capture-active') === 'active' && isCapturing ? 'ring-2 ring-destructive shadow-md' : ''
+            }`}
             onClick={() => {
               // Stop capture through the context
               stopCapture();
               
               // Also clean up any resources from our capture engine
               cleanupCapture();
+              
+              // Mark capture-active as completed
+              completeStep('capture-active');
+              
+              // Set the next step as active
+              setCurrentStep('analysis-pending');
               
               toast({
                 title: "Screen Capture Stopped",
@@ -90,6 +115,9 @@ export default function CaptureControls() {
             }}
             disabled={!isCapturing}
           >
+            {getStepStatus('capture-active') === 'active' && isCapturing && (
+              <Clock className="absolute -right-2 -top-2 h-4 w-4 text-destructive animate-pulse bg-white rounded-full" />
+            )}
             <span className="material-icons mr-1">stop</span>
             Stop
           </Button>

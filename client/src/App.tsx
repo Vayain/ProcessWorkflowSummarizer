@@ -9,6 +9,7 @@ import Documentation from "@/pages/documentation";
 import Header from "@/components/header";
 import MobileNavigation from "@/components/mobile-navigation";
 import { ScreenshotProvider, useScreenshotContext } from "@/lib/context/screenshot-context";
+import { WorkflowProvider } from "@/lib/context/workflow-context";
 import CreateSessionModal from "@/components/create-session-modal";
 
 function Router() {
@@ -49,7 +50,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ScreenshotProvider>
-        <AppContent />
+        <WorkflowProvider>
+          <AppContent />
+        </WorkflowProvider>
       </ScreenshotProvider>
     </QueryClientProvider>
   );

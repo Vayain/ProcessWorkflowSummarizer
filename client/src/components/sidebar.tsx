@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
+import { useWorkflow } from "@/lib/context/workflow-context";
+import { ArrowRight, Check, Clock } from "lucide-react";
 import { initializeCapture, cleanupCapture } from "@/lib/capture-engine";
 
 export default function Sidebar() {
@@ -25,6 +27,8 @@ export default function Sidebar() {
     setCurrentSessionId,
     screenshotCount
   } = useScreenshotContext();
+  
+  const { currentStep, getStepStatus, completeStep, setCurrentStep } = useWorkflow();
   
   const [sessionList, setSessionList] = useState<{ id: number; name: string; time: string }[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
@@ -165,8 +169,20 @@ export default function Sidebar() {
       
       <div className="p-4">
         {/* Capture Settings Section with border */}
-        <div className="border border-neutral-200 rounded-lg p-4 mb-4">
-          <h2 className="font-medium text-neutral-700 mb-3">Capture Settings</h2>
+        <div className={`border rounded-lg p-4 mb-4 ${
+          getStepStatus('capture-setup') === 'active' ? 'border-primary-400 bg-primary-50' : 
+          getStepStatus('capture-setup') === 'completed' ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
+          'border-neutral-200'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-medium text-neutral-700">Capture Settings</h2>
+            {getStepStatus('capture-setup') === 'completed' && (
+              <Check className="h-4 w-4 text-green-500" />
+            )}
+            {getStepStatus('capture-setup') === 'active' && (
+              <ArrowRight className="h-4 w-4 text-primary-500 animate-pulse" />
+            )}
+          </div>
           
           <div className="mb-4">
             <button
@@ -272,15 +288,39 @@ export default function Sidebar() {
         </div>
         
         {/* LLM Analysis Section with border */}
-        <div className="border border-neutral-200 rounded-lg p-4 mb-4">
-          <h3 className="font-medium text-neutral-700 mb-2">LLM Analysis</h3>
+        <div className={`border rounded-lg p-4 mb-4 ${
+          getStepStatus('analysis-pending') === 'active' || getStepStatus('analysis-active') === 'active' 
+            ? 'border-primary-400 bg-primary-50' : 
+          getStepStatus('analysis-completed') === 'completed' 
+            ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
+          'border-neutral-200'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium text-neutral-700">LLM Analysis</h3>
+            {getStepStatus('analysis-completed') === 'completed' && (
+              <Check className="h-4 w-4 text-green-500" />
+            )}
+            {getStepStatus('analysis-active') === 'active' && (
+              <Clock className="h-4 w-4 text-amber-500 animate-pulse" />
+            )}
+            {getStepStatus('analysis-pending') === 'active' && (
+              <ArrowRight className="h-4 w-4 text-primary-500 animate-pulse" />
+            )}
+          </div>
           <div className="flex flex-col space-y-2">
             <Button
               size="sm"
-              variant="outline"
+              variant={getStepStatus('analysis-pending') === 'active' ? "default" : "outline"}
+              className={`relative ${
+                getStepStatus('analysis-pending') === 'active' ? 'ring-2 ring-primary-300 shadow-md' : ''
+              }`}
               onClick={() => {
                 // Start manual LLM analysis for the current session
                 if (window.confirm("Start LLM analysis for all captured screenshots? This will process each screenshot with OpenAI's GPT-4o vision model to generate detailed descriptions.")) {
+                  // Update workflow state
+                  completeStep('analysis-pending');
+                  setCurrentStep('analysis-active');
+                  
                   // Use our context method for manual analysis
                   toast({
                     title: "LLM Analysis Started",
@@ -288,30 +328,58 @@ export default function Sidebar() {
                   });
                   
                   // Use our context method for manual analysis
-                  startManualAnalysis().catch((error: Error) => {
-                    console.error('Analysis error:', error);
-                    toast({
-                      title: "Analysis Failed",
-                      description: "Could not start LLM analysis. Please try again.",
-                      variant: "destructive",
+                  startManualAnalysis()
+                    .then(() => {
+                      // Update workflow state on success
+                      completeStep('analysis-active');
+                      setCurrentStep('analysis-completed');
+                      
+                      toast({
+                        title: "LLM Analysis Complete",
+                        description: "All screenshots have been processed successfully.",
+                      });
+                    })
+                    .catch((error: Error) => {
+                      console.error('Analysis error:', error);
+                      toast({
+                        title: "Analysis Failed",
+                        description: "Could not start LLM analysis. Please try again.",
+                        variant: "destructive",
+                      });
                     });
-                  });
                 }
               }}
             >
+              {getStepStatus('analysis-pending') === 'active' && (
+                <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-primary-500 animate-pulse bg-white rounded-full" />
+              )}
               Start LLM Analysis
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant={getStepStatus('analysis-active') === 'active' ? "secondary" : "outline"}
+              className={`relative ${
+                getStepStatus('analysis-active') === 'active' ? 'ring-2 ring-amber-300 shadow-md' : ''
+              }`}
               onClick={() => {
-                // Since there's no built-in way to stop analysis, we'll just show a confirmation
+                // Complete the current step and move to the next in the workflow
+                completeStep('analysis-active');
+                setCurrentStep('analysis-completed');
+                
                 toast({
                   title: "LLM Analysis Complete",
                   description: "Analysis has been stopped or is complete.",
                 });
+                
+                // After a brief delay, transition to the agent configuration step
+                setTimeout(() => {
+                  setCurrentStep('agent-config');
+                }, 1500);
               }}
             >
+              {getStepStatus('analysis-active') === 'active' && (
+                <Clock className="absolute -right-2 -top-2 h-4 w-4 text-amber-500 animate-pulse bg-white rounded-full" />
+              )}
               End LLM Analysis
             </Button>
           </div>
