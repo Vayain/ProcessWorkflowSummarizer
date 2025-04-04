@@ -194,9 +194,18 @@ export default function Sidebar() {
                 });
                 
                 // Initialize the capture with our new engine and handle preview frames
-                const { initialized } = await initializeCapture(captureArea);
+                const result = await initializeCapture((previewImage) => {
+                  // Send the preview image to the context
+                  if (typeof window !== 'undefined') {
+                    // Use a custom event to communicate with the context
+                    const event = new CustomEvent('screenshot-preview-update', {
+                      detail: { previewImage }
+                    });
+                    window.dispatchEvent(event);
+                  }
+                });
                 
-                if (initialized) {
+                if (result.initialized) {
                   toast({
                     title: "Preview Ready",
                     description: "Screen preview is now active. Click 'Start Capture' when ready to begin.",

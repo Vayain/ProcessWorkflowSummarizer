@@ -11,10 +11,16 @@ let videoElement: HTMLVideoElement | null = null;
 let previewInterval: number | null = null;
 let previewCallback: ((previewImage: string) => void) | null = null;
 
+// Interface for the return value of initializeCapture
+export interface CaptureInitResult {
+  initialized: boolean;
+  startPreview?: () => void;
+}
+
 // Initialize screen capture and return success status
 export async function initializeCapture(
   onPreviewFrame: (previewImage: string) => void
-): Promise<boolean> {
+): Promise<CaptureInitResult> {
   // Clean up any existing capture resources
   cleanupCapture();
   
@@ -22,7 +28,7 @@ export async function initializeCapture(
     // Check if browser supports screen capture
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       console.error("This browser doesn't support screen capture");
-      return false;
+      return { initialized: false };
     }
     
     // Request screen capture permission
@@ -65,11 +71,14 @@ export async function initializeCapture(
       });
     }
     
-    return true;
+    return { 
+      initialized: true,
+      startPreview: () => startPreview()
+    };
   } catch (error) {
     console.error("Failed to initialize screen capture:", error);
     cleanupCapture();
-    return false;
+    return { initialized: false };
   }
 }
 
