@@ -35,7 +35,7 @@ export default function Home() {
                 value="capture"
                 className="px-4 py-3 data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
               >
-                Capture
+                Screen Capture
               </TabsTrigger>
               <TabsTrigger
                 value="agent-config"

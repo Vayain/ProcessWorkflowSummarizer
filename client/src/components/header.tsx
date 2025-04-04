@@ -6,15 +6,19 @@ export default function Header() {
       <div className="flex items-center space-x-4">
         <div className="flex items-center">
           <span className="material-icons text-primary-400 mr-2">video_camera_back</span>
-          <h1 className="text-xl font-semibold text-neutral-700">Activity Documentation Tool</h1>
+          <h1 className="text-xl font-semibold text-neutral-700">ScreenCaptureSummarizer</h1>
         </div>
         
         <div className="hidden md:flex space-x-1">
           <Link href="/">
-            <a className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Dashboard</a>
+            <a className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Screen Capture</a>
           </Link>
-          <button className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Projects</button>
-          <button className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Settings</button>
+          <Link href="/agent-config">
+            <a className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Agent Configuration</a>
+          </Link>
+          <Link href="/documentation">
+            <a className="px-3 py-1 rounded-md hover:bg-neutral-100 text-neutral-700 font-medium">Documentation</a>
+          </Link>
         </div>
       </div>
       

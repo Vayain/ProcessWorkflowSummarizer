@@ -12,7 +12,12 @@ export default function NotFound() {
           </div>
 
           <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
+            The page you're looking for doesn't exist in ScreenCaptureSummarizer.
+          </p>
+          <p className="mt-2 text-sm text-gray-600">
+            <a href="/" className="text-primary-500 hover:text-primary-600">
+              Return to the home page
+            </a>
           </p>
         </CardContent>
       </Card>
