@@ -1,16 +1,16 @@
-# Activity Documentation Tool with AI-Powered Analysis
+# ScreenCaptureSummarizer: AI-Powered Activity Documentation Tool
 
-![Activity Documentation Tool Banner](./generated-icon.png)
+![ScreenCaptureSummarizer Banner](./generated-icon.png)
 
-A comprehensive web application for intelligent screenshot capture, analysis, and documentation powered by advanced AI technologies. This tool helps you document user activities by capturing screenshots at regular intervals, analyzing them with AI, and generating detailed documentation automatically.
+ScreenCaptureSummarizer is a cutting-edge web application that automatically documents user activities through intelligent screenshot capture, AI-powered analysis, and comprehensive documentation generation. Capture your workflow, let AI analyze what's happening in each screenshot, and generate professional documentation in multiple formats without manual effort.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Demo](#demo)
-- [Quick Start](#quick-start)
+- [Key Features](#key-features)
+- [How It Works](#how-it-works)
+- [Quick Start Guide](#quick-start-guide)
 - [Installation](#installation)
-- [Usage Guide](#usage-guide)
+- [Step-by-Step User Workflow](#step-by-step-user-workflow)
 - [Architecture](#architecture)
 - [API Reference](#api-reference)
 - [Dependencies](#dependencies)
@@ -18,87 +18,97 @@ A comprehensive web application for intelligent screenshot capture, analysis, an
 - [Contributing](#contributing)
 - [License](#license)
 
-## Features
+## Key Features
 
-- **Intelligent Screen Capture**: Capture screenshots from tabs, windows, or full screens at customizable intervals.
-- **AI-Powered Analysis**: Each screenshot is processed by OpenAI's GPT-4o vision model to generate detailed descriptions of the user's activity.
-- **Real-time Processing**: See your captures and their AI-generated descriptions as they happen.
-- **Documentation Generation**: Automatically create structured documentation in various formats from your session's screenshots.
-- **Optimized Performance**: Efficient image handling with compression, virtualized lists, and pagination to maintain performance even with numerous screenshots.
-- **Fully Responsive UI**: Clean, intuitive interface built with modern design principles using React and ShadCN UI.
+- **Flexible Screen Capture**: Capture browser tabs, application windows, or full screens with customizable intervals and formats
+- **AI-Powered Analysis**: Screenshots are automatically analyzed by OpenAI's GPT-4o vision model to identify and describe user activities
+- **CrewAI Integration**: Multiple AI agents work together to analyze screenshots, extract insights, and generate comprehensive documentation
+- **Interactive Documentation**: Generate documentation in various formats (Markdown, HTML, PDF) with configurable detail levels
+- **Session Management**: Organize captures into sessions for different projects or workflows
+- **Performance Optimized**: Handles large volumes of screenshots with compression, virtualization, and database storage
+- **User-Friendly Interface**: Modern, intuitive UI with clear workflow guidance and real-time feedback
 
-## Demo
+## How It Works
 
-[Live Demo](https://your-app-url.com) - *Coming soon*
+ScreenCaptureSummarizer follows a structured workflow:
 
-![Demo Video](docs/demo.gif)
+1. **Capture Configuration**: Select what to capture and how frequently
+2. **Screenshot Collection**: Automatically capture screenshots at defined intervals
+3. **AI Analysis**: Each screenshot is analyzed to describe the visible activity
+4. **Agent Processing**: CrewAI agents process the screenshots to create a cohesive narrative
+5. **Documentation Generation**: Comprehensive documentation is created based on the analyzed screenshots
 
-## Quick Start
+## Quick Start Guide
 
-1. Clone the repository
-2. Install dependencies with `npm install`
-3. Set up your OpenAI API key in environment variables
-4. Start the application with `npm run dev`
-5. Navigate to http://localhost:5000 in your browser
+1. **Set Up Environment**:
+   - Ensure you have Node.js installed
+   - Set up your PostgreSQL database
+   - Obtain an OpenAI API key
 
-## Installation
+2. **Install & Configure**:
+   ```bash
+   git clone https://github.com/yourusername/screencapturesummarizer.git
+   cd screencapturesummarizer
+   npm install
+   # Add your OPENAI_API_KEY to environment variables
+   ```
 
-### Prerequisites
+3. **Launch Application**:
+   ```bash
+   npm run dev
+   # Navigate to http://localhost:5000 in your browser
+   ```
 
-- Node.js (v18+)
-- PostgreSQL database
-- OpenAI API key
+4. **Start Using**:
+   - Create a new session
+   - Configure capture settings
+   - Start capturing
+   - Generate documentation when done
 
-### Step 1: Clone the repository
+## Step-by-Step User Workflow
 
-```bash
-git clone https://github.com/yourusername/activity-documentation-tool.git
-cd activity-documentation-tool
-```
+### 1. Create a New Session
+- Click "New Session" in the sidebar
+- Enter a descriptive name (e.g., "Tutorial Documentation")
+- Click "Create"
+- **Result**: New workspace created for your documentation project
 
-### Step 2: Install dependencies
+### 2. Configure Capture Settings
+- Select capture source (screen, window, or tab)
+- Set capture interval (how frequently screenshots are taken)
+- Choose image quality settings
+- Toggle real-time AI analysis if desired
+- **Result**: Application knows exactly what to capture and how
 
-```bash
-npm install
-```
+### 3. Capture Screenshots
+- Click "Start Capture" button
+- Watch as screenshots are automatically taken and displayed
+- Click "Stop Capture" when finished
+- **Result**: Collection of screenshots showing the activity sequence
 
-### Step 3: Configure environment variables
+### 4. Review and Edit
+- Browse through captured screenshots in the gallery
+- View AI-generated descriptions for each screenshot
+- Edit descriptions if needed for clarity or accuracy
+- Delete any unwanted screenshots
+- **Result**: Clean, well-described set of screenshots ready for processing
 
-Create a `.env` file in the root directory with the following variables:
+### 5. Configure AI Agents
+- Navigate to "Agent Configuration" tab
+- Customize which AI agents are active (Analyzer, Writer, Reviewer, Orchestrator)
+- Adjust settings for each agent if desired
+- **Result**: AI system tailored to your documentation needs
 
-```
-DATABASE_URL=postgresql://username:password@localhost:5432/activity_docs
-OPENAI_API_KEY=your_openai_api_key_here
-```
+### 6. Generate Documentation
+- Go to "Documentation" tab
+- Select output format (Markdown, HTML, PDF)
+- Choose detail level (Minimal, Standard, Detailed)
+- Click "Generate Documentation"
+- Wait for processing to complete
+- Download or share the finished documentation
+- **Result**: Professional, comprehensive documentation of the captured activity
 
-### Step 4: Initialize the database
-
-```bash
-npm run db:push
-```
-
-### Step 5: Start the development server
-
-```bash
-npm run dev
-```
-
-## Usage Guide
-
-### Getting Started
-
-1. **Choose Input Source**: Click the "Choose Input" button to select which screen, window, or tab you want to capture.
-2. **Configure Capture Settings**: Set the capture interval and format in the settings panel.
-3. **Start Capturing**: Click "Start Capture" to begin taking screenshots at the specified interval.
-4. **Review Captures**: View your screenshots in the gallery as they are captured and analyzed.
-5. **Generate Documentation**: When you're finished capturing, click "Generate Documentation" to create a structured document from your screenshots.
-
-### Advanced Features
-
-- **Real-time AI Analysis**: Toggle this option to get immediate AI descriptions of each screenshot as it's captured.
-- **Custom Descriptions**: Edit the AI-generated descriptions to add your own notes or corrections.
-- **Session Management**: Create and switch between multiple capture sessions.
-- **Filtering & Sorting**: Organize your screenshots by time, analysis status, or custom filters.
+For a more detailed guide with screenshots and troubleshooting tips, see the [complete user guide](docs/USER_GUIDE.md).
 
 ## Architecture
 

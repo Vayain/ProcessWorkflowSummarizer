@@ -1,13 +1,28 @@
 # AI Integration Documentation
 
-This document details the AI components used in the Activity Documentation Tool, including OpenAI integration and CrewAI agent workflows.
+This document details the AI components used in ScreenCaptureSummarizer, including OpenAI GPT-4o vision model integration and CrewAI agent workflows.
 
 ## Overview
 
-The tool uses advanced AI capabilities to analyze screenshots, generate descriptions, and produce comprehensive documentation. The two primary AI integrations are:
+ScreenCaptureSummarizer leverages advanced AI capabilities to analyze screenshots, generate detailed descriptions, and produce comprehensive documentation. The application combines two powerful AI technologies:
 
-1. **OpenAI Vision API** - For screenshot analysis and description generation
-2. **CrewAI** - For orchestrating multi-agent workflows for comprehensive documentation generation
+1. **OpenAI GPT-4o Vision Model** - For screenshot visual analysis and intelligent description generation
+2. **CrewAI** - For orchestrating specialized AI agents that work together to create professional documentation
+
+## AI Workflow Architecture
+
+The AI components in ScreenCaptureSummarizer work together in a staged pipeline:
+
+```
+Screenshot Capture → Visual Analysis (GPT-4o) → Agent Processing (CrewAI) → Documentation Generation
+```
+
+Each stage processes the data in increasingly sophisticated ways:
+
+1. **Initial Capture**: Raw screenshots are collected and stored
+2. **Visual Analysis**: Each image is processed by GPT-4o to identify activities, UI elements, and context
+3. **Multi-Agent Processing**: Specialized AI agents analyze, write, review, and organize the information
+4. **Documentation Assembly**: Final documentation is formatted according to user preferences
 
 ## OpenAI Integration
 

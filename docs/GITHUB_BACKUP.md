@@ -1,59 +1,94 @@
-# GitHub Backup Guide
+# GitHub Backup Guide for ScreenCaptureSummarizer
 
-This guide provides step-by-step instructions for backing up your Activity Documentation Tool to GitHub.
+This guide provides comprehensive instructions for backing up your ScreenCaptureSummarizer project to GitHub, including specific steps for Replit environments.
 
 ## Prerequisites
 
 1. A GitHub account ([Create one here](https://github.com/join) if needed)
-2. Git installed on your machine
+2. Git is already installed in your Replit environment
 3. Basic familiarity with Git commands
 
 ## Setting Up the GitHub Repository
 
 1. Log in to GitHub at [github.com](https://github.com)
 2. Click the "+" icon in the upper right corner and select "New repository"
-3. Enter a repository name (e.g., "activity-documentation-tool")
-4. Optionally add a description: "A web application that captures, analyzes, and documents user activities using advanced screenshot technology and AI-powered insights."
+3. Enter a repository name (e.g., "ScreenCaptureSummarizer")
+4. Add a description: "An AI-powered application that captures screenshots, analyzes activities, and generates comprehensive documentation through OpenAI GPT-4o and CrewAI agents."
 5. Choose the repository visibility (public or private)
-6. Check "Add a README file" if you haven't already created one locally
-7. Select "MIT License" from the "Add a license" dropdown if you haven't already created one locally
-8. Click "Create repository"
+6. **Do not** initialize with README, .gitignore, or license (as we already have these files in the project)
+7. Click "Create repository"
 
-## Configuring Git in Your Project
+## Backing Up from Replit Environment
 
-If you're starting from your Replit project:
+Replit has Git integration built-in, making it easy to back up your project to GitHub.
 
-1. Open a terminal in your project directory
-2. Initialize Git (if not already initialized):
+### Configuring Git in Replit
+
+1. Open the Shell tab in your Replit project
+2. Configure your Git identity (if not already set):
+   ```bash
+   git config --global user.name "Your Name"
+   git config --global user.email "your.email@example.com"
+   ```
+3. Initialize Git (if not already initialized):
    ```bash
    git init
    ```
-3. Add your GitHub repository as the remote origin:
+4. Add your GitHub repository as the remote origin:
    ```bash
-   git remote add origin https://github.com/yourusername/activity-documentation-tool.git
+   git remote add origin https://github.com/yourusername/ScreenCaptureSummarizer.git
+   ```
+   
+### Preparing for Backup
+
+1. Create or update your `.gitignore` file to exclude environment files and large data:
+   ```bash
+   # Create or check .gitignore
+   cat .gitignore
+   ```
+   
+   Make sure it includes these entries:
+   ```
+   # Environment and secrets
+   .env
+   .env.local
+   .replit
+   replit.nix
+   
+   # Node.js
+   node_modules/
+   
+   # Build outputs
+   dist/
+   build/
+   
+   # Large data and logs
+   *.log
+   uploads/
+   tmp/
    ```
 
-## Preparing for Backup
+2. Make sure your OpenAI API key and database credentials are not hardcoded in any files
 
-1. Make sure your .gitignore file is properly configured to exclude sensitive data and large files (this has already been created for you)
-2. Ensure that no API keys or sensitive credentials are hardcoded in your project files
+### Performing the Initial Backup
 
-## Backing Up to GitHub
-
-Follow these commands to commit and push your project to GitHub:
+Follow these steps for your first backup:
 
 ```bash
-# Stage all files for commit
+# First, check what files will be included
+git status
+
+# Stage all files for commit (except those in .gitignore)
 git add .
 
-# Create an initial commit with a descriptive message
-git commit -m "Initial commit: Activity Documentation Tool with AI-powered analysis"
+# Create the initial commit
+git commit -m "Initial commit: ScreenCaptureSummarizer with OpenAI GPT-4o and CrewAI integration"
 
-# Push to the GitHub repository
+# If this is your first push, you may need to set the upstream branch
 git push -u origin main
 ```
 
-If you're using a different branch name (like "master" instead of "main"), adjust the command accordingly.
+You may be prompted to enter your GitHub credentials. Use your GitHub username and a personal access token (not your password) when prompted.
 
 ## Updating Your GitHub Repository
 
@@ -70,17 +105,44 @@ git commit -m "Description of your changes"
 git push
 ```
 
-## Setting Up GitHub Pages (Optional)
+## Regular Backup Process
 
-If you want to create a project website, you can use GitHub Pages:
+We recommend making periodic backups of your ScreenCaptureSummarizer project:
+
+1. After significant feature additions or changes
+2. Before major refactoring
+3. When reaching stable milestones
+4. Before taking a break from development
+
+Follow this simple backup process:
+
+```bash
+# Pull any changes if you've made updates from elsewhere
+git pull origin main
+
+# See what files have changed
+git status
+
+# Add all changes (or specify individual files if preferred)
+git add .
+
+# Commit with a descriptive message about what you've changed
+git commit -m "Added CrewAI agent configuration controls and improved documentation generation"
+
+# Push to GitHub
+git push
+```
+
+## Setting Up Project Documentation (Optional)
+
+You can publish your documentation to GitHub Pages:
 
 1. Go to your repository on GitHub
-2. Click "Settings"
-3. Scroll down to the "GitHub Pages" section
-4. Under "Source", select the branch you want to deploy (usually "main")
-5. Choose the "/docs" folder if you want to use your documentation as a website
-6. Click "Save"
-7. Your site will be published at `https://yourusername.github.io/activity-documentation-tool/`
+2. Click "Settings" → "Pages"
+3. Under "Build and deployment" → "Source", select "Deploy from a branch"
+4. Under "Branch", select "main" and the "/docs" folder
+5. Click "Save"
+6. Your documentation will be published at `https://yourusername.github.io/ScreenCaptureSummarizer/`
 
 ## Best Practices
 

@@ -1,57 +1,115 @@
-# User Guide
+# ScreenCaptureSummarizer: Comprehensive User Guide
 
-Welcome to the Activity Documentation Tool! This guide will help you get the most out of the application.
+Welcome to ScreenCaptureSummarizer! This guide provides detailed instructions on how to use the application to capture, analyze, and document your activities.
 
 ## Introduction
 
-The Activity Documentation Tool helps you document user activities through automated screenshots, AI analysis, and documentation generation. Whether you're creating tutorials, documenting workflows, or capturing user testing sessions, this tool makes the process efficient and intelligent.
+ScreenCaptureSummarizer is a powerful tool that automatically documents any on-screen activity through a combination of intelligent screen capture, AI-powered analysis, and comprehensive documentation generation. Whether you're creating tutorials, documenting software functionality, or recording user testing sessions, this application streamlines the entire process.
 
-## Getting Started
+## Application Workflow Overview
 
-### System Requirements
+The application guides you through a structured workflow:
 
-- Modern web browser (Chrome, Firefox, Edge, or Safari)
-- Internet connection
-- Screen or window you wish to capture
+1. **Capture Settings Configuration** → 
+2. **Screenshot Collection** → 
+3. **AI Analysis** → 
+4. **Agent Configuration** → 
+5. **Documentation Generation**
 
-### Setting Up
+Each step builds on the previous one, with visual indicators showing your progress through the workflow.
 
-1. Launch the application by navigating to the URL in your browser
-2. You'll be presented with the main dashboard
-3. The first time you use the application, you'll need to set up a session
+## Detailed Step-by-Step Workflow
 
-### Creating a New Session
+### Step 1: Create a New Session
 
-1. Click the "New" button in the sidebar under "Current Session"
-2. Enter a name for your session (e.g., "Website Tutorial Documentation")
-3. Click "Create"
+**What it does:** Sessions allow you to organize different documentation projects separately.
 
-## Capturing Screenshots
+1. When you first open the application, look for the sidebar on the left
+2. Find the "New Session" button in the sidebar
+3. Click it and enter a descriptive name for your session (e.g., "Website Onboarding Tutorial")
+4. Click "Create" to start the new session
 
-### Selecting the Capture Input
+**Outcome:** A new session is created and becomes your active workspace. The sidebar will show your session name with a green indicator dot.
 
-1. In the "Capture Settings" section, click the "Choose Input" button
-2. Your browser will prompt you to select a capture source:
-   - **Entire Screen**: Captures your entire display
-   - **Window**: Captures a specific application window
-   - **Tab**: Captures only the current browser tab
-3. Select the appropriate source
-4. You'll see a preview of what will be captured in the live view area
+### Step 2: Configure Capture Settings
 
-### Configuring Capture Settings
+**What it does:** This step lets you define what will be captured and how.
 
-1. **Capture Interval**: Use the slider to set how frequently screenshots are taken (1-60 seconds)
-2. **Screenshot Format**: Choose between PNG (higher quality) or JPEG (smaller file size)
-3. **Real-time AI Analysis**: Toggle on to have AI analyze each screenshot as it's captured
+1. In the main workspace area, find the "Capture Settings" section
+2. Choose your **capture source** by clicking "Choose Input":
+   - **Entire Screen:** Captures everything on your display
+   - **Application Window:** Captures only a specific application
+   - **Browser Tab:** Captures only the current browser tab
+3. Set the **capture interval** using the slider (how often screenshots are taken)
+4. Select **image quality** (higher quality = larger file size)
+5. Toggle **Real-time AI Analysis** on if you want immediate analysis of each screenshot
 
-### Starting and Stopping Capture
+**Outcome:** The application is now configured to capture exactly what you need. The "Capture Settings" section will display all your chosen parameters with a green checkmark.
 
-1. Once you've selected your input source and configured settings, click the "Start Capture" button
-2. Screenshots will be taken automatically at the interval you specified
-3. You'll see screenshots appear in the gallery as they're captured
-4. To stop capturing, click the "Stop" button
+### Step 3: Start the Capture Process
 
-## Working with Screenshots
+**What it does:** Begins taking screenshots automatically at your specified interval.
+
+1. Once settings are configured, click the prominent "Start Capture" button
+2. You'll see a live preview of what's being captured
+3. Screenshots will begin appearing in the gallery below
+4. A timer will show how long you've been capturing
+5. To stop capturing, click the "Stop Capture" button
+
+**Outcome:** A collection of screenshots is captured and stored in your session. Each thumbnail appears in the gallery with a timestamp.
+
+### Step 4: Review and Edit Screenshots
+
+**What it does:** Lets you review captured screenshots and their AI-generated descriptions.
+
+1. After capturing, browse through your screenshots in the gallery
+2. Click any screenshot to view it in full size
+3. Each screenshot will show:
+   - The image itself
+   - Timestamp when it was captured
+   - AI-generated description of the activity shown
+4. If needed, click the "Edit" icon to modify the AI-generated description
+5. You can delete unwanted screenshots using the "Delete" icon
+
+**Outcome:** Your screenshots are organized with accurate descriptions. The gallery shows processing status with color indicators (yellow = processing, green = complete).
+
+### Step 5: Configure AI Agents
+
+**What it does:** Customizes how AI agents analyze your screenshots to generate documentation.
+
+1. Navigate to the "Agent Configuration" tab in the main navigation
+2. You'll see multiple AI agent types:
+   - **Analyzer Agent:** Interprets activities in screenshots
+   - **Writer Agent:** Creates narrative content from analyses
+   - **Reviewer Agent:** Checks for consistency and accuracy
+   - **Orchestrator Agent:** Coordinates the other agents
+3. For each agent, you can:
+   - Toggle it on/off
+   - Customize its behavior through provided settings
+   - Preview sample output
+
+**Outcome:** The AI system is configured to process your screenshots according to your specific needs. Active agents will show with green indicators.
+
+### Step 6: Generate Documentation
+
+**What it does:** Creates comprehensive documentation based on your screenshots and their analyses.
+
+1. Navigate to the "Documentation" tab in the main navigation
+2. Choose your preferred **output format**:
+   - Markdown
+   - HTML
+   - PDF
+3. Select the **detail level**:
+   - Minimal: Key points only
+   - Standard: Balanced detail
+   - Detailed: Comprehensive coverage
+4. Click "Generate Documentation"
+5. The system will show a progress indicator while the agents work
+6. When complete, your documentation will appear in the viewer
+
+**Outcome:** A complete, professionally formatted document that captures all the activities from your screenshots with coherent explanations and structure. A download button allows you to save the documentation in your chosen format.
+
+## Feature Highlights
 
 ### Viewing Screenshots
 
