@@ -34,7 +34,6 @@ function AppContent() {
         <div className="flex-1 flex">
           <Router />
         </div>
-        {/* Mobile navigation only shown on small screens */}
         <MobileNavigation />
       </div>
       <CreateSessionModal 

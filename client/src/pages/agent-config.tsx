@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import Sidebar from "@/components/sidebar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,33 @@ export default function AgentConfig() {
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Tab Navigation */}
+        <div className="bg-white border-b border-neutral-200">
+          <Tabs defaultValue="agent-config" className="w-full">
+            <TabsList className="flex">
+              <TabsTrigger
+                value="capture"
+                className="px-4 py-3 data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
+                onClick={() => setLocation("/")}
+              >
+                Screen Capture
+              </TabsTrigger>
+              <TabsTrigger
+                value="agent-config"
+                className="px-4 py-3 data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
+              >
+                Agent Configuration
+              </TabsTrigger>
+              <TabsTrigger
+                value="documentation"
+                className="px-4 py-3 data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
+                onClick={() => setLocation("/documentation")}
+              >
+                Documentation
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-4xl mx-auto">
