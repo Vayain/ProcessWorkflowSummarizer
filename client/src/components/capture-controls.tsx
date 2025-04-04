@@ -84,7 +84,7 @@ export default function CaptureControls() {
             disabled={isCapturing || !isPreviewActive}
           >
             {getStepStatus('capture-setup') === 'active' && (
-              <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-primary-500 animate-pulse bg-white rounded-full" />
+              <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-green-500 animate-pulse bg-white rounded-full" />
             )}
             <span className="material-icons mr-1">photo_camera</span>
             Start Capture

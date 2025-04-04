@@ -170,7 +170,7 @@ export default function Sidebar() {
       <div className="p-4">
         {/* Capture Settings Section with border */}
         <div className={`border rounded-lg p-4 mb-4 ${
-          getStepStatus('capture-setup') === 'active' ? 'border-primary-400 bg-primary-50' : 
+          getStepStatus('capture-setup') === 'active' ? 'border-green-400 bg-green-50' : 
           getStepStatus('capture-setup') === 'completed' ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
           'border-neutral-200'
         }`}>
@@ -180,7 +180,7 @@ export default function Sidebar() {
               <Check className="h-4 w-4 text-green-500" />
             )}
             {getStepStatus('capture-setup') === 'active' && (
-              <ArrowRight className="h-4 w-4 text-primary-500 animate-pulse" />
+              <ArrowRight className="h-4 w-4 text-green-500 animate-pulse" />
             )}
           </div>
           
@@ -290,7 +290,7 @@ export default function Sidebar() {
         {/* LLM Analysis Section with border */}
         <div className={`border rounded-lg p-4 mb-4 ${
           getStepStatus('analysis-pending') === 'active' || getStepStatus('analysis-active') === 'active' 
-            ? 'border-primary-400 bg-primary-50' : 
+            ? 'border-green-400 bg-green-50' : 
           getStepStatus('analysis-completed') === 'completed' 
             ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
           'border-neutral-200 bg-neutral-50'
@@ -304,7 +304,7 @@ export default function Sidebar() {
               <Clock className="h-4 w-4 text-amber-500 animate-pulse" />
             )}
             {getStepStatus('analysis-pending') === 'active' && (
-              <ArrowRight className="h-4 w-4 text-primary-500 animate-pulse" />
+              <ArrowRight className="h-4 w-4 text-green-500 animate-pulse" />
             )}
           </div>
           <div className="flex flex-col space-y-2">
@@ -312,7 +312,7 @@ export default function Sidebar() {
               size="sm"
               variant={getStepStatus('analysis-pending') === 'active' ? "default" : "outline"}
               className={`relative ${
-                getStepStatus('analysis-pending') === 'active' ? 'ring-2 ring-primary-300 shadow-md' : ''
+                getStepStatus('analysis-pending') === 'active' ? 'ring-2 ring-green-300 shadow-md' : ''
               }`}
               onClick={() => {
                 // Start manual LLM analysis for the current session
@@ -351,7 +351,7 @@ export default function Sidebar() {
               }}
             >
               {getStepStatus('analysis-pending') === 'active' && (
-                <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-primary-500 animate-pulse bg-white rounded-full" />
+                <ArrowRight className="absolute -right-2 -top-2 h-4 w-4 text-green-500 animate-pulse bg-white rounded-full" />
               )}
               Start LLM Analysis
             </Button>
