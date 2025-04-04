@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import AgentConfig from "@/pages/agent-config";
 import Documentation from "@/pages/documentation";
 import Header from "@/components/header";
+import TopNavigation from "@/components/top-navigation";
 import MobileNavigation from "@/components/mobile-navigation";
 import { ScreenshotProvider, useScreenshotContext } from "@/lib/context/screenshot-context";
 import { WorkflowProvider } from "@/lib/context/workflow-context";
@@ -31,6 +32,7 @@ function AppContent() {
     <>
       <div className="min-h-screen flex flex-col">
         <Header />
+        <TopNavigation />
         <div className="flex-1 flex">
           <Router />
         </div>

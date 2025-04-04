@@ -289,12 +289,11 @@ export default function Sidebar() {
         
         {/* LLM Analysis Section with border */}
         <div className={`border rounded-lg p-4 mb-4 ${
-          getStepStatus('analysis-pending') === 'active' || 
-          getStepStatus('analysis-active') === 'active' || 
-          getStepStatus('capture-completed') === 'completed'
+          (getStepStatus('analysis-pending') === 'active' || 
+           getStepStatus('analysis-active') === 'active' || 
+           (getStepStatus('capture-completed') === 'completed' && 
+            getStepStatus('analysis-completed') !== 'completed'))
             ? 'border-green-400 bg-green-50' : 
-          getStepStatus('analysis-completed') === 'completed' 
-            ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
           'border-neutral-200 bg-neutral-50'
         }`}>
           <div className="flex items-center justify-between mb-2">
@@ -376,12 +375,13 @@ export default function Sidebar() {
                 
                 toast({
                   title: "LLM Analysis Complete",
-                  description: "Analysis has been stopped or is complete.",
+                  description: "Analysis has been stopped. Continue to Documentation tab.",
+                  duration: 6000,
                 });
                 
-                // After a brief delay, transition to the agent configuration step
+                // After a brief delay, transition to the documentation step
                 setTimeout(() => {
-                  setCurrentStep('agent-config');
+                  setCurrentStep('documentation');
                 }, 1500);
               }}
             >
