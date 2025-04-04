@@ -222,75 +222,73 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
           // Compress the image if needed
           const compressedImageData = await compressImage(frameData);
           
-          // Save screenshot to API
-          const response = await apiRequest('POST', '/api/screenshots', {
-            sessionId: sessionId,
-            imageData: compressedImageData,
-            aiAnalysisStatus: isRealTimeAnalysis ? 'pending' : 'completed'
-          });
-          
-          if (!response.ok) {
-            console.error('Failed to save screenshot, server returned:', response.status);
-            return; // Don't show an error since the server itself might be working fine
-          }
-          
-          const newScreenshot = await response.json();
-          console.log('Successfully captured screenshot with ID:', newScreenshot.id);
-          
-          // Add to state
-          setScreenshots(prev => {
-            const updated = [newScreenshot, ...prev];
-            return sortOrder === 'newest' 
-              ? updated 
-              : updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          });
-          
-          setLatestScreenshot(newScreenshot);
-          setScreenshotCount(prev => prev + 1);
-          
-          // If real-time analysis is enabled, send for analysis
-          if (isRealTimeAnalysis) {
-            try {
-              const description = await analyzeScreenshot(newScreenshot.id, compressedImageData);
-              
-              // Update screenshot with description
-              const updatedScreenshot = {
-                ...newScreenshot,
-                description,
-                aiAnalysisStatus: 'completed'
-              };
-              
-              // Update in state
-              setScreenshots(prev => 
-                prev.map(s => s.id === updatedScreenshot.id ? updatedScreenshot : s)
-              );
-              
-              setLatestScreenshot(updatedScreenshot);
-              setCurrentDescription(description);
-              
-              // Also update on server
-              await apiRequest('PATCH', `/api/screenshots/${newScreenshot.id}`, {
-                description,
-                aiAnalysisStatus: 'completed'
-              });
-            } catch (error) {
-              console.error('Error analyzing screenshot:', error);
-              
-              // Mark as failed
-              setScreenshots(prev => 
-                prev.map(s => s.id === newScreenshot.id 
-                  ? { ...s, aiAnalysisStatus: 'failed' } 
-                  : s
-                )
-              );
-              
-              if (newScreenshot.id === latestScreenshot?.id) {
-                setLatestScreenshot(prev => prev ? { ...prev, aiAnalysisStatus: 'failed' } : null);
+          try {
+            // Save screenshot to API
+            const newScreenshot = await apiRequest('POST', '/api/screenshots', {
+              sessionId: sessionId,
+              imageData: compressedImageData,
+              aiAnalysisStatus: isRealTimeAnalysis ? 'pending' : 'completed'
+            });
+            
+            console.log('Successfully captured screenshot with ID:', newScreenshot.id);
+            
+            // Add to state
+            setScreenshots(prev => {
+              const updated = [newScreenshot, ...prev];
+              return sortOrder === 'newest' 
+                ? updated 
+                : updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            });
+            
+            setLatestScreenshot(newScreenshot);
+            setScreenshotCount(prev => prev + 1);
+            
+            // If real-time analysis is enabled, send for analysis
+            if (isRealTimeAnalysis) {
+              try {
+                const description = await analyzeScreenshot(newScreenshot.id, compressedImageData);
+                
+                // Update screenshot with description
+                const updatedScreenshot = {
+                  ...newScreenshot,
+                  description,
+                  aiAnalysisStatus: 'completed'
+                };
+                
+                // Update in state
+                setScreenshots(prev => 
+                  prev.map(s => s.id === updatedScreenshot.id ? updatedScreenshot : s)
+                );
+                
+                setLatestScreenshot(updatedScreenshot);
+                setCurrentDescription(description);
+                
+                // Also update on server
+                await apiRequest('PATCH', `/api/screenshots/${newScreenshot.id}`, {
+                  description,
+                  aiAnalysisStatus: 'completed'
+                });
+              } catch (error) {
+                console.error('Error analyzing screenshot:', error);
+                
+                // Mark as failed
+                setScreenshots(prev => 
+                  prev.map(s => s.id === newScreenshot.id 
+                    ? { ...s, aiAnalysisStatus: 'failed' } 
+                    : s
+                  )
+                );
+                
+                if (newScreenshot.id === latestScreenshot?.id) {
+                  setLatestScreenshot(prev => prev ? { ...prev, aiAnalysisStatus: 'failed' } : null);
+                }
               }
             }
+          } catch (saveError) {
+            console.error('Error saving screenshot:', saveError);
           }
-        } catch (error) {
-          console.error('Error capturing and saving frame:', error);
+        } catch (captureError) {
+          console.error('Error capturing and saving frame:', captureError);
           // Don't show error toasts for individual frame captures as they're distracting
           // and the user will see the frames appear in the gallery anyway
         }
