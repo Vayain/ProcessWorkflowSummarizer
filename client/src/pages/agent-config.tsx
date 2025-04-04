@@ -11,6 +11,7 @@ import { z } from "zod";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflow } from "@/lib/context/workflow-context";
 
 const agentSchema = z.object({
   analyzer: z.object({
@@ -36,7 +37,13 @@ type AgentFormValues = z.infer<typeof agentSchema>;
 export default function AgentConfig() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const { currentStep, getStepStatus, completeStep, setCurrentStep } = useWorkflow();
   
+  // Check if Documentation tab should be highlighted
+  const isDocumentationHighlighted = 
+    currentStep === 'documentation' || 
+    getStepStatus('analysis-completed') === 'completed';
+    
   const [previewOutput, setPreviewOutput] = useState<string>("");
 
   const form = useForm<AgentFormValues>({
@@ -71,9 +78,17 @@ export default function AgentConfig() {
         body: JSON.stringify(values),
       });
 
+      // Update workflow context to indicate agent configuration is complete
+      completeStep('agent-config');
+      
+      // Navigate to documentation page
+      setTimeout(() => {
+        setLocation("/documentation");
+      }, 500);
+
       toast({
         title: "Agent configurations saved",
-        description: "Your agent configurations have been updated successfully.",
+        description: "Your agent configurations have been updated successfully. Ready to generate documentation!",
       });
     } catch (error) {
       toast({
@@ -120,7 +135,11 @@ export default function AgentConfig() {
               </TabsTrigger>
               <TabsTrigger
                 value="documentation"
-                className="px-4 py-3 data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
+                className={`px-4 py-3 ${
+                  isDocumentationHighlighted ? 
+                  "text-green-600 border-b-2 border-green-600 font-medium" : 
+                  "data-[state=active]:text-primary-400 data-[state=active]:border-b-2 data-[state=active]:border-primary-400 data-[state=active]:font-medium"
+                }`}
                 onClick={() => setLocation("/documentation")}
               >
                 Documentation
