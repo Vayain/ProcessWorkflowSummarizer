@@ -149,12 +149,9 @@ export default function Sidebar() {
         <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200">
           <div className="flex justify-between items-center mb-2">
             <div>
-              <span className="text-sm font-medium text-neutral-600">Session #{currentSessionId || '???'}</span>
-              {sessionList.find(s => s.id === currentSessionId)?.name && (
-                <div className="text-xs text-blue-600">
-                  {sessionList.find(s => s.id === currentSessionId)?.name}
-                </div>
-              )}
+              <span className="text-sm font-medium text-neutral-600">
+                {sessionList.find(s => s.id === currentSessionId)?.name || 'No active session'}
+              </span>
             </div>
             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Active</span>
           </div>
@@ -333,16 +330,13 @@ export default function Sidebar() {
                   // this would trigger a useEffect that would fetch the screenshots
                   
                   toast({
-                    title: `Session #${session.id} Selected`,
+                    title: `Session "${session.name}" Selected`,
                     description: `Now viewing screenshots from ${session.time}`,
                   });
                 }
               }}
             >
-              <div className="text-sm font-medium text-neutral-700">Session #{session.id}</div>
-              {session.name && session.name !== `Session #${session.id}` && (
-                <div className="text-xs text-blue-600 font-medium">{session.name}</div>
-              )}
+              <div className="text-sm font-medium text-neutral-700">{session.name}</div>
               <div className="text-xs text-neutral-500">{session.time}</div>
             </div>
           ))}

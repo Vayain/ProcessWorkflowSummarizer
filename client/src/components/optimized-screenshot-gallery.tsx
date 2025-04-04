@@ -5,6 +5,7 @@ import { createThumbnail, cacheScreenshot, getCachedThumbnail } from '@/lib/perf
 import { Screenshot } from '@shared/schema';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { usePagination } from '@/hooks/use-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -251,12 +252,33 @@ export default function OptimizedScreenshotGallery({
                 )}
               </div>
               <CardContent className="p-4">
-                <p className="text-sm font-medium truncate">
-                  {screenshot.description || 'Untitled Screenshot'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(screenshot.timestamp).toLocaleString()}
-                </p>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(screenshot.timestamp).toLocaleString()}
+                  </p>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ${
+                      screenshot.aiAnalysisStatus === "completed" 
+                        ? "bg-green-100 text-green-800" 
+                        : screenshot.aiAnalysisStatus === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                    } px-2 py-0.5 rounded-full`}
+                  >
+                    {screenshot.aiAnalysisStatus === "completed" 
+                      ? "Analyzed" 
+                      : screenshot.aiAnalysisStatus === "pending"
+                      ? "Pending"
+                      : "Failed"}
+                  </Badge>
+                </div>
+                <div className="mt-2">
+                  <h4 className="text-xs font-medium text-neutral-700 mb-1">Description:</h4>
+                  <p className={`text-xs ${screenshot.description ? 'text-neutral-600' : 'text-neutral-400 italic'} line-clamp-3`}>
+                    {screenshot.description || "No description available yet. Use the 'Start LLM Analysis' button to generate descriptions."}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           );
@@ -323,11 +345,12 @@ export default function OptimizedScreenshotGallery({
                   />
                 )}
               </div>
-              {selectedScreenshot.description && (
-                <div className="mt-4 p-4 bg-muted rounded-md">
-                  <p className="text-sm">{selectedScreenshot.description}</p>
-                </div>
-              )}
+              <div className="mt-4 p-4 bg-muted rounded-md">
+                <h3 className="text-sm font-medium mb-2">AI Analysis:</h3>
+                <p className={`text-sm ${selectedScreenshot.description ? '' : 'text-muted-foreground italic'}`}>
+                  {selectedScreenshot.description || "No AI analysis available yet. Use the 'Start LLM Analysis' button to generate a description for this screenshot."}
+                </p>
+              </div>
             </div>
             <div className="p-4 border-t flex justify-end gap-2">
               <Button variant="outline" onClick={() => setSelectedScreenshot(null)}>

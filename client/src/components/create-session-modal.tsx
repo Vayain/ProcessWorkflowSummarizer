@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +25,17 @@ export default function CreateSessionModal({
   onClose,
   onSessionCreated,
 }: CreateSessionModalProps) {
-  const [sessionName, setSessionName] = useState("");
+  // Generate a default session name based on the current time
+  const generateDefaultName = () => {
+    const now = new Date();
+    return `Session ${now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    })}`;
+  };
+  
+  const [sessionName, setSessionName] = useState(generateDefaultName());
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { captureInterval, captureArea } = useScreenshotContext();
@@ -81,6 +91,13 @@ export default function CreateSessionModal({
     }
   };
 
+  // Reset the session name whenever the dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setSessionName(generateDefaultName());
+    }
+  }, [isOpen]);
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">

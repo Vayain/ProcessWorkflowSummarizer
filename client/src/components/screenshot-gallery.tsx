@@ -184,9 +184,12 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
                     </Badge>
                   </div>
                   
-                  <p className="text-xs text-neutral-600 line-clamp-2">
-                    {screenshot.description || "No description available yet."}
-                  </p>
+                  <div className="mt-2 mb-2">
+                    <h4 className="text-xs font-medium text-neutral-700 mb-1">Description:</h4>
+                    <p className={`text-xs ${screenshot.description ? 'text-neutral-600' : 'text-neutral-400 italic'} line-clamp-3`}>
+                      {screenshot.description || "No description available yet. Use the 'Start LLM Analysis' button to generate descriptions."}
+                    </p>
+                  </div>
                   
                   <div className="flex items-center justify-between mt-2">
                     <Button 
