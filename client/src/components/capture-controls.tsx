@@ -104,13 +104,15 @@ export default function CaptureControls() {
               
               // Mark capture-active as completed
               completeStep('capture-active');
+              completeStep('capture-completed');
               
-              // Set the next step as active
+              // Set the next step as active - highlight "LLM Analysis" section
               setCurrentStep('analysis-pending');
               
               toast({
                 title: "Screen Capture Stopped",
-                description: "All resources have been released and capture has been stopped.",
+                description: "Screenshots collected. Continue with LLM Analysis in the sidebar.",
+                duration: 6000,
               });
             }}
             disabled={!isCapturing}

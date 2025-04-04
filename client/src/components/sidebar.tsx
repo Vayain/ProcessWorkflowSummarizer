@@ -289,7 +289,9 @@ export default function Sidebar() {
         
         {/* LLM Analysis Section with border */}
         <div className={`border rounded-lg p-4 mb-4 ${
-          getStepStatus('analysis-pending') === 'active' || getStepStatus('analysis-active') === 'active' 
+          getStepStatus('analysis-pending') === 'active' || 
+          getStepStatus('analysis-active') === 'active' || 
+          getStepStatus('capture-completed') === 'completed'
             ? 'border-green-400 bg-green-50' : 
           getStepStatus('analysis-completed') === 'completed' 
             ? 'border-neutral-300 bg-neutral-50 opacity-75' : 
@@ -336,8 +338,14 @@ export default function Sidebar() {
                       
                       toast({
                         title: "LLM Analysis Complete",
-                        description: "All screenshots have been processed successfully.",
+                        description: "All screenshots have been processed successfully. Continue to Documentation tab.",
+                        duration: 6000,
                       });
+                      
+                      // Highlight the Documentation tab as the next step
+                      setTimeout(() => {
+                        setCurrentStep('documentation');
+                      }, 2000);
                     })
                     .catch((error: Error) => {
                       console.error('Analysis error:', error);
