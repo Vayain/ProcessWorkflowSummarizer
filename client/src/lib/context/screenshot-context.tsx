@@ -38,6 +38,9 @@ interface ScreenshotContextType {
   previewImageData: string | null;
   currentSessionId: number | null;
   setCurrentSessionId: (sessionId: number | null) => void;
+  isSessionModalOpen: boolean;
+  setIsSessionModalOpen: (isOpen: boolean) => void;
+  handleSessionCreated: (sessionId: number) => void;
   startCapture: () => void;
   stopCapture: () => void;
   deleteScreenshot: (id: number) => Promise<void>;
@@ -66,6 +69,8 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
   const [isPreviewActive, setIsPreviewActive] = useState(false);
   const [previewImageData, setPreviewImageData] = useState<string | null>(null);
   const [previewIntervalId, setPreviewIntervalId] = useState<number | null>(null);
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+  const [pendingCapture, setPendingCapture] = useState(false);
 
   // Reference to track any legacy active display media streams
   const activeScreenStreams = useRef<MediaStream[]>([]);
@@ -186,8 +191,14 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     setCapArea(area);
   }, []);
 
-  // Start capture function using our new engine
-  const startCapture = useCallback(async () => {
+  // Function to show session modal
+  const showSessionModal = useCallback(() => {
+    setIsSessionModalOpen(true);
+    setPendingCapture(true);
+  }, []);
+  
+  // Internal capture function
+  const beginCapture = useCallback(async (sessionId: number) => {
     // Only start if preview is active
     if (isPreviewActive && previewImageData) {
       setIsCapturing(true);
@@ -195,7 +206,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
       
       // Create a function that captures and saves a frame
       const saveCurrentFrame = async () => {
-        if (!currentSessionId) return;
+        if (!sessionId) return;
         
         try {
           // Get a frame from our capture engine
@@ -210,7 +221,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
           
           // Save screenshot to API
           const response = await apiRequest('POST', '/api/screenshots', {
-            sessionId: currentSessionId,
+            sessionId: sessionId,
             imageData: compressedImageData,
             aiAnalysisStatus: isRealTimeAnalysis ? 'pending' : 'completed'
           });
@@ -304,12 +315,34 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     captureInterval,
     isPreviewActive,
     previewImageData,
-    currentSessionId,
     isRealTimeAnalysis,
     sortOrder,
     latestScreenshot,
     toast
   ]);
+  
+  // Function to handle session creation after beginCapture is defined
+  const handleSessionCreated = useCallback((sessionId: number) => {
+    setCurrentSessionId(sessionId);
+    setPendingCapture(false);
+    
+    // Begin capture with the new session ID
+    beginCapture(sessionId);
+  }, [beginCapture, setCurrentSessionId]);
+
+  // Public start capture function - shows the session modal
+  const startCapture = useCallback(() => {
+    // Show session modal if preview is active
+    if (isPreviewActive && previewImageData) {
+      showSessionModal();
+    } else {
+      toast({
+        title: "Screen Capture Failed",
+        description: "No preview active. Please select a capture source first.",
+        variant: "destructive",
+      });
+    }
+  }, [isPreviewActive, previewImageData, showSessionModal, toast]);
 
   // Stop capture function
   const stopCapture = useCallback(() => {
@@ -555,6 +588,9 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     previewImageData,
     currentSessionId,
     setCurrentSessionId,
+    isSessionModalOpen,
+    setIsSessionModalOpen,
+    handleSessionCreated,
     startCapture,
     stopCapture,
     deleteScreenshot,

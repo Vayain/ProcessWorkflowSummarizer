@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { initializeCapture, cleanupCapture, captureFrame, isCaptureActive, compressImage } from "@/lib/capture-engine";
+import CreateSessionModal from "@/components/create-session-modal";
 
 export default function CaptureControls() {
   const { 

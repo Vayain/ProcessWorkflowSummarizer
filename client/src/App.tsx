@@ -8,7 +8,8 @@ import AgentConfig from "@/pages/agent-config";
 import Documentation from "@/pages/documentation";
 import Header from "@/components/header";
 import MobileNavigation from "@/components/mobile-navigation";
-import { ScreenshotProvider } from "@/lib/context/screenshot-context";
+import { ScreenshotProvider, useScreenshotContext } from "@/lib/context/screenshot-context";
+import CreateSessionModal from "@/components/create-session-modal";
 
 function Router() {
   return (
@@ -21,18 +22,34 @@ function Router() {
   );
 }
 
+// Component that uses the context
+function AppContent() {
+  const { isSessionModalOpen, setIsSessionModalOpen, handleSessionCreated } = useScreenshotContext();
+
+  return (
+    <>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex">
+          <Router />
+        </div>
+        <MobileNavigation />
+      </div>
+      <CreateSessionModal 
+        isOpen={isSessionModalOpen}
+        onClose={() => setIsSessionModalOpen(false)}
+        onSessionCreated={handleSessionCreated}
+      />
+      <Toaster />
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ScreenshotProvider>
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <div className="flex-1 flex">
-            <Router />
-          </div>
-          <MobileNavigation />
-        </div>
-        <Toaster />
+        <AppContent />
       </ScreenshotProvider>
     </QueryClientProvider>
   );
