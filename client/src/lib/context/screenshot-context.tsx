@@ -16,7 +16,9 @@ interface Screenshot {
 
 interface ScreenshotContextType {
   screenshots: Screenshot[];
+  setScreenshots: React.Dispatch<React.SetStateAction<Screenshot[]>>;
   latestScreenshot: Screenshot | null;
+  setLatestScreenshot: React.Dispatch<React.SetStateAction<Screenshot | null>>;
   isCapturing: boolean;
   captureInterval: number;
   setCaptureInterval: (interval: number) => void;
@@ -31,6 +33,7 @@ interface ScreenshotContextType {
   sortOrder: string;
   setSortOrder: (order: string) => void;
   currentDescription: string;
+  setCurrentDescription: React.Dispatch<React.SetStateAction<string>>;
   analysisProgress: { current: number; total: number };
   processingProgress: { status: string; percent: number };
   documentationProgress: { status: string; percent: number };
@@ -566,7 +569,9 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const value = {
     screenshots,
+    setScreenshots,
     latestScreenshot,
+    setLatestScreenshot,
     isCapturing,
     captureInterval,
     setCaptureInterval,
@@ -581,6 +586,7 @@ export const ScreenshotProvider: React.FC<{ children: ReactNode }> = ({ children
     sortOrder,
     setSortOrder,
     currentDescription,
+    setCurrentDescription,
     analysisProgress,
     processingProgress,
     documentationProgress,

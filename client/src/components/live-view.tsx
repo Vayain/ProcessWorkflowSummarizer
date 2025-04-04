@@ -1,19 +1,63 @@
 import { useScreenshotContext } from "@/lib/context/screenshot-context";
 import { Progress } from "@/components/ui/progress";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function LiveView() {
   const { 
     latestScreenshot, 
+    setLatestScreenshot,
     isCapturing, 
     captureInterval,
     analysisProgress,
     processingProgress,
     documentationProgress,
     currentDescription,
+    setCurrentDescription,
     isPreviewActive,
     previewImageData,
-    captureArea
+    captureArea,
+    currentSessionId
   } = useScreenshotContext();
+  
+  // Add auto-refresh for the latest screenshot when capturing is active
+  useEffect(() => {
+    if (!isCapturing || !currentSessionId) return;
+    
+    const fetchLatestScreenshot = async () => {
+      try {
+        const response = await apiRequest('GET', `/api/screenshots?sessionId=${currentSessionId}`, undefined);
+        if (!response.ok) return;
+        
+        const screenshots = await response.json();
+        if (screenshots.length === 0) return;
+        
+        // Get the newest screenshot
+        const newest = screenshots.sort((a: any, b: any) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )[0];
+        
+        // Update only if we have a newer screenshot or no screenshot yet
+        if (!latestScreenshot || newest.id > latestScreenshot.id) {
+          console.log(`LiveView: Updating latest screenshot to #${newest.id}`);
+          setLatestScreenshot(newest);
+          setCurrentDescription(newest.description || '');
+        }
+      } catch (error) {
+        console.error('Error fetching latest screenshot:', error);
+      }
+    };
+    
+    // Set a fast interval while capturing is active (1.5 seconds)
+    const intervalId = window.setInterval(fetchLatestScreenshot, 1500);
+    
+    // Fetch immediately on mount
+    fetchLatestScreenshot();
+    
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isCapturing, currentSessionId, latestScreenshot, setLatestScreenshot, setCurrentDescription]);
 
   return (
     <div className="w-full lg:w-3/5 p-4 flex flex-col overflow-hidden">

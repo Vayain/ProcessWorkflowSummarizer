@@ -80,6 +80,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
+        // Check that params exists to satisfy TypeScript
+        if (!req.params) {
+          return res.status(400).json({ message: "Missing parameters" });
+        }
+        
         const id = Number(req.params.id);
         const screenshot = await storage.getScreenshot(id);
         
@@ -111,6 +116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
+        // Check that params exists to satisfy TypeScript
+        if (!req.params) {
+          return res.status(400).json({ message: "Missing parameters" });
+        }
+        
         const id = Number(req.params.id);
         await storage.deleteScreenshot(id);
         res.status(204).send();
@@ -244,6 +254,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
+        // Check that params exists to satisfy TypeScript
+        if (!req.params) {
+          return res.status(400).json({ message: "Missing parameters" });
+        }
+        
         const sessionId = Number(req.params.sessionId);
         
         // Get screenshots for analysis progress

@@ -26,7 +26,7 @@ export default function Sidebar() {
     screenshotCount
   } = useScreenshotContext();
   
-  const [sessionList, setSessionList] = useState<{ id: number; time: string }[]>([]);
+  const [sessionList, setSessionList] = useState<{ id: number; name: string; time: string }[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   
   // Fetch sessions from the API when component mounts
@@ -55,6 +55,7 @@ export default function Sidebar() {
             
             return {
               id: session.id,
+              name: session.name || `Session #${session.id}`,
               time: timeString
             };
           });
@@ -132,6 +133,7 @@ export default function Sidebar() {
                       
                       return {
                         id: session.id,
+                        name: session.name || `Session #${session.id}`,
                         time: timeString
                       };
                     });
@@ -161,7 +163,14 @@ export default function Sidebar() {
         
         <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-neutral-600">Session #{currentSessionId || '???'}</span>
+            <div>
+              <span className="text-sm font-medium text-neutral-600">Session #{currentSessionId || '???'}</span>
+              {sessionList.find(s => s.id === currentSessionId)?.name && (
+                <div className="text-xs text-blue-600">
+                  {sessionList.find(s => s.id === currentSessionId)?.name}
+                </div>
+              )}
+            </div>
             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Active</span>
           </div>
           
@@ -346,6 +355,9 @@ export default function Sidebar() {
               }}
             >
               <div className="text-sm font-medium text-neutral-700">Session #{session.id}</div>
+              {session.name && session.name !== `Session #${session.id}` && (
+                <div className="text-xs text-blue-600 font-medium">{session.name}</div>
+              )}
               <div className="text-xs text-neutral-500">{session.time}</div>
             </div>
           ))}

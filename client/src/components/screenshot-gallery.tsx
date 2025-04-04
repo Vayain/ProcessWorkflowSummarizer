@@ -3,8 +3,9 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ScreenshotGalleryProps {
   onEdit: (screenshotId: number) => void;
@@ -19,8 +20,64 @@ export default function ScreenshotGallery({ onEdit }: ScreenshotGalleryProps) {
     deleteScreenshot, 
     deleteAllScreenshots,
     startManualAnalysis,
-    currentSessionId
+    currentSessionId,
+    isCapturing,
+    setScreenshots
   } = useScreenshotContext();
+  
+  // Add auto-refresh for screenshots when capturing is active
+  useEffect(() => {
+    // Don't do anything if no session is selected
+    if (!currentSessionId) return;
+    
+    // Define the fetch function
+    const fetchScreenshots = async () => {
+      try {
+        const response = await apiRequest('GET', `/api/screenshots?sessionId=${currentSessionId}`, undefined);
+        if (!response.ok) {
+          console.warn('Failed to fetch latest screenshots');
+          return;
+        }
+        
+        const latestScreenshots = await response.json();
+        
+        // Only update if we have more screenshots than before
+        // This preserves any local state changes (like pending analysis, etc.)
+        if (latestScreenshots.length > screenshots.length) {
+          console.log(`Refreshed screenshots: found ${latestScreenshots.length} (had ${screenshots.length})`);
+          
+          // Sort according to current preference
+          const sorted = sortOrder === 'newest' 
+            ? latestScreenshots.sort((a: any, b: any) => 
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            : latestScreenshots.sort((a: any, b: any) => 
+                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                
+          setScreenshots(sorted);
+        }
+      } catch (error) {
+        console.error('Error refreshing screenshots:', error);
+      }
+    };
+    
+    // Set up polling interval when capturing is active
+    let intervalId: number | null = null;
+    
+    if (isCapturing) {
+      // Poll more frequently when capturing is active (every 2 seconds)
+      intervalId = window.setInterval(fetchScreenshots, 2000) as unknown as number;
+      
+      // Fetch immediately
+      fetchScreenshots();
+    }
+    
+    // Clean up on unmount or when dependencies change
+    return () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [currentSessionId, isCapturing, sortOrder, screenshots.length, setScreenshots]);
 
   return (
     <div className="w-full lg:w-2/5 border-t lg:border-t-0 lg:border-l border-neutral-200 bg-neutral-50 flex flex-col overflow-hidden">
