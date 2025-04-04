@@ -4,7 +4,7 @@ Welcome to ScreenCaptureSummarizer! This guide provides detailed instructions on
 
 ## Introduction
 
-ScreenCaptureSummarizer is a powerful tool that automatically documents any on-screen activity through a combination of intelligent screen capture, AI-powered analysis, and comprehensive documentation generation. Whether you're creating tutorials, documenting software functionality, or recording user testing sessions, this application streamlines the entire process.
+ScreenCaptureSummarizer (appearing as "SCS" in your browser tab) is a powerful tool that automatically documents any on-screen activity through a combination of intelligent screen capture, AI-powered analysis, and comprehensive documentation generation. Whether you're creating tutorials, documenting software functionality, or recording user testing sessions, this application streamlines the entire process.
 
 ## Application Workflow Overview
 

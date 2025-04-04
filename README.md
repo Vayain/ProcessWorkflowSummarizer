@@ -27,6 +27,7 @@ ScreenCaptureSummarizer is a cutting-edge web application that automatically doc
 - **Session Management**: Organize captures into sessions for different projects or workflows
 - **Performance Optimized**: Handles large volumes of screenshots with compression, virtualization, and database storage
 - **User-Friendly Interface**: Modern, intuitive UI with clear workflow guidance and real-time feedback
+- **Streamlined Branding**: Displays as "SCS" in browser tab for a clean, minimalist appearance while maintaining full branding in the application
 
 ## How It Works
 
